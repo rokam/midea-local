@@ -82,7 +82,9 @@ async def main() -> None:
     cloud_keys = {}
     if cloud:
         if not await cloud.login():
-            print("ERROR: cannot login")
+            msg = f"\nERROR: cannot login into device {first_device['device_id']} \
+[{first_device['ip_address']}]\n"
+            print(msg)
             await session.close()
             sys.exit(2)
         cloud_keys = await cloud.get_keys(first_device["device_id"])
