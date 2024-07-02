@@ -34,6 +34,52 @@ XC1_SUBBODY_TYPE_44 = 0x44
 XC1_SUBBODY_TYPE_40 = 0x40
 
 
+class Capabilities(IntEnum):
+    """AC Capabilities."""
+
+    SWING_UD_ANGLE = 0x0009
+    SWING_LR_ANGLE = 0x000A
+    SILKY_COOL = 0x0018
+    SMART_EYE = 0x0030
+    WIND_ON_ME = 0x0032
+    WIND_OFF_ME = 0x0033
+    SELF_CLEAN = 0x0039  # AKA Active Clean
+    ONE_KEY_NO_WIND_ON_ME = 0x0042
+    BREEZE_CONTROL = 0x0043  # AKA "FA No Wind Sense"
+    RATE_SELECT = 0x0048
+    FRESH_AIR = 0x004B
+    PARENT_CONTROL = 0x0051  # ??
+    PREVENT_STRAIGHT_WIND_SELECT = 0x0058  # ??
+    WIND_AROUND = 0x0059  # ??
+    JET_COOL = 0x0067  # ??
+    IECO_SWITCH = 0x00E3  # ??
+    ICHECK = 0x0091  # ??
+    EMERGENT_HEAT_WIND = 0x0093  # ??
+    HEAT_PTC_WIND = 0x0094  # ??
+    CVP = 0x0098  # ??
+    FAN_SPEED_CONTROL = 0x0210
+    PRESET_ECO = 0x0212
+    PRESET_FREEZE_PROTECTION = 0x0213
+    MODES = 0x0214
+    SWING_MODES = 0x0215
+    POWER = 0x0216
+    FILTER_REMIND = 0x0217
+    AUX_ELECTRIC_HEAT = 0x0219  # AKA PTC
+    PRESET_TURBO = 0x021A
+    FILTER_CHECK = 0x0221
+    ANION = 0x021E
+    HUMIDITY = 0x021F
+    FAHRENHEIT = 0x0222
+    DISPLAY_CONTROL = 0x0224
+    TEMPERATURES = 0x0225
+    BUZZER = 0x022C  # ??
+    MAIN_HORIZONTAL_GUIDE_STRIP = 0x0230  # ??
+    SUP_HORIZONTAL_GUIDE_STRIP = 0x0231  # ??
+    TWINS_MACHINE = 0x0232  # ??
+    GUIDE_STRIP_TYPE = 0x0233  # ??
+    BODY_CHECK = 0x0234  # ??
+
+
 class PowerAnalysisMethod(IntEnum):
     """AC Power analysis method."""
 
@@ -125,6 +171,25 @@ class MessageQuery(MessageACBase):
                 0x00,
             ],
         )
+
+
+class MessageCapabilitiesQuery(MessageACBase):
+    """AC message capabilities query."""
+
+    def __init__(self, protocol_version: int, additional_capabilities: bool) -> None:
+        """Initialize AC message capabilities query."""
+        super().__init__(
+            protocol_version=protocol_version,
+            message_type=MessageType.query,
+            body_type=BodyType.B5,
+        )
+        self._additional_capabilities = additional_capabilities
+
+    @property
+    def _body(self) -> bytearray:
+        if self._additional_capabilities:
+            return bytearray([0x01, 0x01, 0x1])
+        return bytearray([0x01, 0x00])
 
 
 class MessagePowerQuery(MessageACBase):
@@ -610,6 +675,7 @@ class XBXMessageBody(NewProtocolMessageBody):
     def __init__(self, body: bytearray, bt: int) -> None:
         """Initialize AC BX message body."""
         super().__init__(body, bt)
+
         params = self.parse()
         if NewProtocolTags.indirect_wind in params:
             self.indirect_wind = (
@@ -634,6 +700,14 @@ class XBXMessageBody(NewProtocolMessageBody):
             data = params[NewProtocolTags.fresh_air_2]
             self.fresh_air_power = data[0] > 0
             self.fresh_air_fan_speed = data[1]
+
+        if Capabilities.MODES in params:
+            v = params[Capabilities.MODES][0]
+            self.modes: dict[str, bool] = {}
+            self.modes["heat"] = v in [1, 2, 4, 6, 7, 9]
+            self.modes["cool"] = v not in [2]
+            self.modes["dry"] = v in [0, 1, 5, 6, 9]
+            self.modes["auto"] = v in [0, 1, 2, 7, 8, 9]
 
 
 class XC0MessageBody(MessageBody):
@@ -852,4 +926,5 @@ class MessageACResponse(MessageResponse):
         ):
             self.used_subprotocol = True
             self.set_body(XBBMessageBody(super().body))
+
         self.set_attr()

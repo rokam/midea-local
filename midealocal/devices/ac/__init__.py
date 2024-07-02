@@ -9,6 +9,7 @@ from midealocal.device import MideaDevice
 
 from .message import (
     MessageACResponse,
+    MessageCapabilitiesQuery,
     MessageGeneralSet,
     MessageNewProtocolQuery,
     MessageNewProtocolSet,
@@ -58,6 +59,7 @@ class DeviceAttributes(StrEnum):
     total_energy_consumption = "total_energy_consumption"
     current_energy_consumption = "current_energy_consumption"
     realtime_power = "realtime_power"
+    MODES = "modes"
 
 
 class MideaACDevice(MideaDevice):
@@ -131,6 +133,7 @@ class MideaACDevice(MideaDevice):
                 DeviceAttributes.fresh_air_mode: None,
                 DeviceAttributes.fresh_air_1: None,
                 DeviceAttributes.fresh_air_2: None,
+                DeviceAttributes.MODES: dict[str, bool],
             },
         )
         self._fresh_air_version: DeviceAttributes | None = None
@@ -172,6 +175,13 @@ class MideaACDevice(MideaDevice):
             MessageQuery(self._protocol_version),
             MessageNewProtocolQuery(self._protocol_version),
             MessagePowerQuery(self._protocol_version),
+        ]
+
+    def capabilities_query(self) -> list:
+        """Capabilities query message."""
+        return [
+            MessageCapabilitiesQuery(self._protocol_version, False),
+            MessageCapabilitiesQuery(self._protocol_version, True),
         ]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:

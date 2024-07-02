@@ -75,6 +75,10 @@ class AuthException(Exception):
     """Authentication exception."""
 
 
+class CapabilitiesFailed(Exception):
+    """Capabilities failed exception."""
+
+
 class ResponseException(Exception):
     """Response exception."""
 
@@ -190,7 +194,11 @@ class MideaDevice(threading.Thread):
                 break
         return result, msg
 
-    def connect(self, refresh_status: bool = True) -> bool:
+    def connect(
+        self,
+        refresh_status: bool = True,
+        get_capabilities: bool = True,
+    ) -> bool:
         """Connect to device."""
         connected = False
         try:
@@ -209,6 +217,8 @@ class MideaDevice(threading.Thread):
             _LOGGER.debug("[%s] Authentication success", self._device_id)
             if refresh_status:
                 self.refresh_status(wait_response=True)
+            if get_capabilities:
+                self.get_capabilities(wait_response=True)
             connected = True
         except TimeoutError:
             _LOGGER.debug("[%s] Connection timed out", self._device_id)
@@ -281,6 +291,42 @@ class MideaDevice(threading.Thread):
         _LOGGER.debug("[%s] Sending: %s", self._device_id, cmd)
         msg = PacketBuilder(self._device_id, data).finalize()
         self.send_message(msg)
+
+    def get_capabilities(self, wait_response: bool = False) -> None:
+        """Get device capabilities."""
+        cmds: list = self.capabilities_query()
+        if self._appliance_query:
+            cmds = [MessageQueryAppliance(self.device_type), *cmds]
+        error_count = 0
+        for cmd in cmds:
+            if cmd.__class__.__name__ not in self._unsupported_protocol:
+                self.build_send(cmd)
+                if wait_response:
+                    try:
+                        while True:
+                            if not self._socket:
+                                raise SocketException
+                            msg = self._socket.recv(512)
+                            if len(msg) == 0:
+                                raise OSError
+                            result = self.parse_message(msg)
+                            if result == ParseMessageResult.SUCCESS:
+                                break
+                            if result == ParseMessageResult.PADDING:
+                                continue
+                            error_count += 1
+                    except TimeoutError:
+                        error_count += 1
+                        self._unsupported_protocol.append(cmd.__class__.__name__)
+                        _LOGGER.debug(
+                            "[%s] Does not supports the protocol %s, ignored",
+                            self._device_id,
+                            cmd.__class__.__name__,
+                        )
+            else:
+                error_count += 1
+        if error_count == len(cmds):
+            raise CapabilitiesFailed
 
     def refresh_status(self, wait_response: bool = False) -> None:
         """Refresh device status."""
@@ -406,6 +452,10 @@ class MideaDevice(threading.Thread):
     def build_query(self) -> list:
         """Build query."""
         raise NotImplementedError
+
+    def capabilities_query(self) -> list:
+        """Capabilities query."""
+        return []
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Process message."""
