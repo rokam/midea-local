@@ -218,9 +218,7 @@ class A1GeneralMessageBody(MessageBody):
         self.power = (body[1] & 0x01) > 0
         self.mode = body[2] & 0x0F
         self.fan_speed = body[3] & 0x7F
-        self.target_humidity = (
-            MIN_TARGET_HUMIDITY if (body[7] < MIN_TARGET_HUMIDITY) else body[7]
-        )
+        self.target_humidity = max(body[7], MIN_TARGET_HUMIDITY)
         self.child_lock = (body[8] & 0x80) > 0
         self.anion = (body[9] & 0x40) > 0
         self.tank = body[10] & 0x7F
