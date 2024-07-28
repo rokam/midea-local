@@ -71,6 +71,12 @@ SUPPORTED_CLOUDS = {
         "app_key": "434a209a5ce141c3b726de067835d7f0",
         "api_url": "https://mapp.appsmb.com",  # codespell:ignore
     },
+    "Toshiba Iolife": {
+        "class_name": "MideaAirCloud",
+        "app_id": "1203",
+        "app_key": "09c4d09f0da1513bb62dc7b6b0af9c11",
+        "api_url": "https://toshiba-app.smartmidea.net",  # codespell:ignore
+    },
 }
 
 DEFAULT_KEYS = {
