@@ -103,8 +103,7 @@ class MideaE2Device(MideaDevice):
             if return_value == OldProtocol.auto:
                 result = (
                     self.subtype <= E2SubType.T82
-                    or self.subtype == E2SubType.T85
-                    or self.subtype == E2SubType.T36353
+                    or self.subtype in [E2SubType.T85, E2SubType.T36353],
                 )
                 return_value = OldProtocol.true if result else OldProtocol.false
         if isinstance(value, bool | int):
