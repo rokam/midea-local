@@ -11,6 +11,10 @@ class CannotAuthenticate(MideaLocalError):
     """Exception raised when credentials are incorrect."""
 
 
+class CannotConnect(MideaLocalError):
+    """Exception raised when connection fails."""
+
+
 class DataUnexpectedLength(MideaLocalError):
     """Exception raised when data length is less or more than expected."""
 

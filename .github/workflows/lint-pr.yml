@@ -1,0 +1,24 @@
+name: "Check PR"
+
+on:
+  pull_request:
+    types: [opened, edited, reopened, labeled, unlabeled]
+
+jobs:
+  lint-pr-name:
+    name: Validate PR title
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: read
+    steps:
+      - uses: amannn/action-semantic-pull-request@v5
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+  label-pr:
+    runs-on: ubuntu-latest
+    permissions:
+      pull-requests: write
+    steps:
+      - uses: grafana/pr-labeler-action@v0.1.0
+        with:
+          token: ${{ secrets.GITHUB_TOKEN }}

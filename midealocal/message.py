@@ -2,7 +2,7 @@
 
 import logging
 from enum import IntEnum
-from typing import SupportsIndex, cast
+from typing import Generic, SupportsIndex, TypeVar, cast
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -300,12 +300,156 @@ class MessageQueryAppliance(MessageRequest):
         return bytearray([0x00] * 19)
 
 
+T = TypeVar("T")
+E = TypeVar("E", bound="IntEnum")
+
+
+class BodyParser(Generic[T]):
+    """Body parser to decode message."""
+
+    def __init__(
+        self,
+        name: str,
+        byte: int,
+        bit: int | None = None,
+        length_in_bytes: int = 1,
+        first_upper: bool = True,
+        default_raw_value: int = 0,
+    ) -> None:
+        """Init body parser with attribute name."""
+        self.name = name
+        self._byte = byte
+        self._bit = bit
+        self._length_in_bytes = length_in_bytes
+        self._first_upper = first_upper
+        self._default_raw_value = default_raw_value
+        if length_in_bytes < 0:
+            raise ValueError("Length in bytes must be a positive value.")
+        if bit is not None and (bit < 0 or bit >= length_in_bytes * 8):
+            raise ValueError(
+                "Bit, if set, must be a valid value position for %d bytes.",
+                length_in_bytes,
+            )
+
+    def _get_raw_value(self, body: bytearray) -> int:
+        """Get raw value from body."""
+        if len(body) < self._byte + self._length_in_bytes:
+            return self._default_raw_value
+        data = 0
+        for i in range(self._length_in_bytes):
+            byte = (
+                self._byte + self._length_in_bytes - 1 - i
+                if self._first_upper
+                else self._byte + i
+            )
+            data += body[byte] << (8 * i)
+        if self._bit is not None:
+            data = (data & (1 << self._bit)) >> self._bit
+        return data
+
+    def get_value(self, body: bytearray) -> T:
+        """Get attribute value."""
+        return self._parse(self._get_raw_value(body))
+
+    def _parse(self, raw_value: int) -> T:
+        """Convert raw value to attribute value."""
+        raise NotImplementedError
+
+
+class BoolParser(BodyParser[bool]):
+    """Bool message body parser."""
+
+    def __init__(
+        self,
+        name: str,
+        byte: int,
+        bit: int | None = None,
+        true_value: int = 1,
+        false_value: int = 0,
+        default_value: bool = True,
+    ) -> None:
+        """Init bool body parser."""
+        super().__init__(name, byte, bit)
+        self._true_value = true_value
+        self._default_value = default_value
+        self._false_value = false_value
+
+    def _parse(self, raw_value: int) -> bool:
+        if raw_value not in [self._true_value, self._false_value]:
+            return self._default_value
+        return raw_value == self._true_value
+
+
+class IntEnumParser(BodyParser[E]):
+    """IntEnum message body parser."""
+
+    def __init__(
+        self,
+        name: str,
+        byte: int,
+        enum_class: type[E],
+        length_in_bytes: int = 1,
+        first_upper: bool = False,
+        default_value: E | None = None,
+    ) -> None:
+        """Init IntEnum body parser."""
+        super().__init__(
+            name,
+            byte,
+            length_in_bytes=length_in_bytes,
+            first_upper=first_upper,
+        )
+        self._enum_class = enum_class
+        self._default_value = default_value
+
+    def _parse(self, raw_value: int) -> E:
+        try:
+            return self._enum_class(raw_value)
+        except ValueError:
+            return (
+                self._default_value
+                if self._default_value is not None
+                else self._enum_class(0)
+            )
+
+
+class IntParser(BodyParser[int]):
+    """IntEnum message body parser."""
+
+    def __init__(
+        self,
+        name: str,
+        byte: int,
+        max_value: int = 255,
+        min_value: int = 0,
+        length_in_bytes: int = 1,
+        first_upper: bool = False,
+    ) -> None:
+        """Init IntEnum body parser."""
+        super().__init__(
+            name,
+            byte,
+            length_in_bytes=length_in_bytes,
+            first_upper=first_upper,
+        )
+        self._max_value = max_value
+        self._min_value = min_value
+
+    def _parse(self, raw_value: int) -> int:
+        if raw_value > self._max_value:
+            return self._max_value
+        if raw_value < self._min_value:
+            return self._min_value
+        return raw_value
+
+
 class MessageBody:
     """Message body."""
 
     def __init__(self, body: bytearray) -> None:
         """Initialize message body."""
         self._data = body
+        self.parser_list: list[BodyParser] = []
 
     @property
     def data(self) -> bytearray:
@@ -321,6 +465,11 @@ class MessageBody:
     def read_byte(body: bytearray, byte: int, default_value: int = 0) -> int:
         """Read bytes for message body."""
         return body[byte] if len(body) > byte else default_value
+
+    def parse_all(self) -> None:
+        """Process parses and set body attrs."""
+        for parse in self.parser_list:
+            setattr(self, parse.name, parse.get_value(self._data))
 
 
 class NewProtocolPackLength(IntEnum):

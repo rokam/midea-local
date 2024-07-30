@@ -1,0 +1,10 @@
+clear-prexisting: true
+include-title: true
+label-for-breaking-changes: "breaking change"
+label-mapping:
+  bug: ["fix"]
+  configuration: ["build", "ci"]
+  documentation: ["docs"]
+  enhancement: ["feat"]
+  misc: ["chore", "performance", "refactor", "style"]
+  test: ["test"]

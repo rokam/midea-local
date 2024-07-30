@@ -15,7 +15,7 @@ import platformdirs
 from colorlog import ColoredFormatter
 
 from midealocal.cloud import SUPPORTED_CLOUDS, MideaCloud, get_midea_cloud
-from midealocal.device import ProtocolVersion
+from midealocal.device import MideaDevice, ProtocolVersion
 from midealocal.devices import device_selector
 from midealocal.discover import discover
 from midealocal.exceptions import ElementMissing
@@ -59,13 +59,13 @@ class MideaCLI:
         default_keys = await cloud.get_default_keys()
         return {**cloud_keys, **default_keys}
 
-    async def discover(self) -> None:
+    async def discover(self) -> MideaDevice | None:
         """Discover device information."""
         devices = discover(ip_address=self.namespace.host)
 
         if len(devices) == 0:
             _LOGGER.error("No devices found.")
-            return
+            return None
 
         # Dump only basic device info from the base class
         _LOGGER.info("Found %d devices.", len(devices))
@@ -93,9 +93,10 @@ class MideaCLI:
                 _LOGGER.debug("Trying to connect with key: %s", key)
                 if dev.connect():
                     _LOGGER.info("Found device:\n%s", dev.attributes)
-                    break
+                    return dev
 
                 _LOGGER.debug("Unable to connect with key: %s", key)
+        return None
 
     def message(self) -> None:
         """Load message into device."""
@@ -158,6 +159,33 @@ class MideaCLI:
         _LOGGER.debug("Download lua file for %s [%s]", device_sn, hex(device_type))
         lua = await cloud.download_lua(str(Path()), device_type, device_sn, model)
         _LOGGER.info("Downloaded lua file: %s", lua)
+
+    async def set_attribute(self) -> None:
+        """Set attribute for device."""
+        device = await self.discover()
+        if device is None:
+            return
+
+        _LOGGER.info(
+            "Setting attribute %s for %s [%s]",
+            self.namespace.attribute,
+            device.device_id,
+            device.device_type,
+        )
+        device.set_attribute(
+            self.namespace.attribute,
+            self._cast_attr_value(),
+        )
+        await asyncio.sleep(2)
+        device.refresh_status(True)
+        _LOGGER.info("New device status:\n%s", device.attributes)
+
+    def _cast_attr_value(self) -> int | bool | str:
+        if self.namespace.attr_type == "bool":
+            return self.namespace.value not in ["false", "False", "0", ""]
+        if self.namespace.attr_type == "int":
+            return int(self.namespace.value)
+        return str(self.namespace.value)
 
     def run(self, namespace: Namespace) -> None:
         """Do setup logging, validate args and execute the desired function."""
@@ -305,6 +333,35 @@ def main() -> NoReturn:
         help="IP Address of the device.",
     )
     download_parser.set_defaults(func=cli.download)
+
+    attribute_parser = subparsers.add_parser(
+        "setattr",
+        description="Set device attribute after discover.",
+        parents=[common_parser],
+    )
+    attribute_parser.add_argument(
+        "host",
+        help="Hostname or IP address of a single device.",
+        default=None,
+    )
+    attribute_parser.add_argument(
+        "attribute",
+        help="Attribute name.",
+        default=None,
+    )
+    attribute_parser.add_argument(
+        "value",
+        help="Attribute value.",
+        default=None,
+    )
+    attribute_parser.add_argument(
+        "--attr-type",
+        help="Attribute type.",
+        type=str,
+        default="int",
+        choices=["bool", "int", "str"],
+    )
+    attribute_parser.set_defaults(func=cli.set_attribute)
 
     config = get_config_file_path()
     namespace = parser.parse_args()

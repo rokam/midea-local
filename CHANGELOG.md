@@ -1,5 +1,20 @@
 # Changelog
 
+## [2.4.0](https://github.com/rokam/midea-local/compare/v2.3.0...v2.4.0) (2024-07-24)
+
+
+### Features
+
+* **cli:** set attribute from device ([#241](https://github.com/rokam/midea-local/issues/241)) ([6f0a109](https://github.com/rokam/midea-local/commit/6f0a10942c0b5defd3622c14bcd2795b34ec01a8))
+* segregate connect/auth/refresh/enable device duties ([#233](https://github.com/rokam/midea-local/issues/233)) ([681bd79](https://github.com/rokam/midea-local/commit/681bd79f078deafe82cc4708f47c53c808dca064))
+
+## [2.3.0](https://github.com/rokam/midea-local/compare/v2.2.0...v2.3.0) (2024-07-23)
+
+
+### Features
+
+* **message:** body parsers ([#235](https://github.com/rokam/midea-local/issues/235)) ([c636eee](https://github.com/rokam/midea-local/commit/c636eeef5128504c079704d023e2215896e3c770))
+
 ## [2.2.0](https://github.com/rokam/midea-local/compare/v2.1.1...v2.2.0) (2024-07-20)
 
 

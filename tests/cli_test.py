@@ -36,6 +36,9 @@ class TestMideaCLI(IsolatedAsyncioTestCase):
             device_sn="",
             user=False,
             debug=True,
+            attribute="power",
+            value="0",
+            attr_type="bool",
             func=MagicMock(),
         )
         self.cli.namespace = self.namespace
@@ -197,6 +200,62 @@ class TestMideaCLI(IsolatedAsyncioTestCase):
                 mock_device["sn"],
                 mock_device["model"],
             )
+
+    async def test_set_attribute(self) -> None:
+        """Test set attribute."""
+        mock_device = {
+            "device_id": 1,
+            "protocol": ProtocolVersion.V3,
+            "type": 0xAC,
+            "ip_address": "192.168.0.2",
+            "port": 6444,
+            "model": "AC123",
+            "sn": "AC123",
+        }
+        mock_cloud_instance = AsyncMock()
+        socket_instance = AsyncMock()
+        mock_device_instance = MagicMock()
+        mock_device_instance.connect.return_value = True
+        mock_cloud_instance.get_cloud_keys.return_value = {
+            0: {"token": "token", "key": "key"},
+        }
+        mock_cloud_instance.get_default_keys.return_value = {
+            99: {"token": "token", "key": "key"},
+        }
+        with (
+            patch(
+                "midealocal.cli.discover",
+                return_value={1: mock_device},
+            ),
+            patch.object(
+                self.cli,
+                "_get_cloud",
+                return_value=mock_cloud_instance,
+            ),
+            patch("socket.socket", return_value=socket_instance),
+            patch(
+                "midealocal.cli.device_selector",
+                return_value=mock_device_instance,
+            ),
+        ):
+            await self.cli.set_attribute()
+            mock_device_instance.set_attribute.assert_called_once_with("power", False)
+            mock_device_instance.reset_mock()
+
+            self.namespace.attribute = "mode"
+            self.namespace.value = "2"
+            self.namespace.attr_type = "int"
+
+            await self.cli.set_attribute()
+            mock_device_instance.set_attribute.assert_called_once_with("mode", 2)
+            mock_device_instance.reset_mock()
+
+            self.namespace.attribute = "attr"
+            self.namespace.value = "string"
+            self.namespace.attr_type = "str"
+
+            await self.cli.set_attribute()
+            mock_device_instance.set_attribute.assert_called_once_with("attr", "string")
 
     def test_run(self) -> None:
         """Test run."""

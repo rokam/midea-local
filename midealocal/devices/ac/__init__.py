@@ -285,7 +285,11 @@ class MideaACDevice(MideaDevice):
         """Midea AC device set attribute."""
         # if nat a sensor
         message: (
-            MessageToggleDisplay | MessageNewProtocolSet | MessageGeneralSet | None
+            MessageToggleDisplay
+            | MessageNewProtocolSet
+            | MessageSubProtocolSet
+            | MessageGeneralSet
+            | None
         ) = None
         if attr not in [
             DeviceAttributes.indoor_temperature,
@@ -355,7 +359,7 @@ class MideaACDevice(MideaDevice):
                     )
                     setattr(message, str(self._fresh_air_version), fresh_air)
             elif attr in self._attributes:
-                message = self.make_message_set()
+                message = self.make_message_uniq_set()
                 if attr in [
                     DeviceAttributes.boost_mode,
                     DeviceAttributes.sleep_mode,
@@ -365,9 +369,10 @@ class MideaACDevice(MideaDevice):
                 ]:
                     message.boost_mode = False
                     message.sleep_mode = False
-                    message.comfort_mode = False
                     message.eco_mode = False
-                    message.frost_protect = False
+                    if not isinstance(message, MessageSubProtocolSet):
+                        message.comfort_mode = False
+                        message.frost_protect = False
                 setattr(message, str(attr), value)
                 if attr == DeviceAttributes.mode:
                     setattr(message, str(DeviceAttributes.power.value), True)
@@ -392,9 +397,12 @@ class MideaACDevice(MideaDevice):
 
     def set_swing(self, swing_vertical: bool, swing_horizontal: bool) -> None:
         """Midea AC device set swing."""
-        message: MessageGeneralSet = self.make_message_set()
-        message.swing_vertical = swing_vertical
-        message.swing_horizontal = swing_horizontal
+        message: MessageSubProtocolSet | MessageGeneralSet = (
+            self.make_message_uniq_set()
+        )
+        if isinstance(message, MessageGeneralSet):
+            message.swing_vertical = swing_vertical
+            message.swing_horizontal = swing_horizontal
         self.build_send(message)
 
     def set_customize(self, customize: str) -> None:

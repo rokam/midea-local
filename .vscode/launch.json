@@ -51,6 +51,21 @@
         "--device-sn",
         "${input:device-sn}"
       ]
+    },
+    {
+      "name": "Python Debugger: Set device attribute",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "midealocal.cli",
+      "args": [
+        "setattr",
+        "-d",
+        "${input:host}",
+        "${input:attribute}",
+        "${input:value}",
+        "--attr-type",
+        "${input:attr-type}"
+      ]
     }
   ],
   "inputs": [
@@ -99,6 +114,22 @@
       "type": "promptString",
       "password": true,
       "description": "Enter cloud password."
+    },
+    {
+      "id": "attribute",
+      "type": "promptString",
+      "description": "Enter attribute name."
+    },
+    {
+      "id": "value",
+      "type": "promptString",
+      "description": "Enter attribute value."
+    },
+    {
+      "id": "attr-type",
+      "type": "pickString",
+      "options": ["bool", "int", "str"],
+      "description": "Choose attribute type."
     }
   ]
 }
