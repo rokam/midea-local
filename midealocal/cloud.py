@@ -843,24 +843,25 @@ class MideaAirCloud(MideaCloud):
 
 
 class ToshibaIOLife(MideaAirCloud):
-    """ Toshiba IOLife """
+    """Toshiba IOLife"""
+
     async def list_appliance_types(
         self,
     ) -> dict[int, dict[str, Any]] | None:
-        """ List Toshiba IOLife device types """
+        """List Toshiba IOLife device types"""
         data = self._make_general_data()
         data.update({"applianceType": "0xFF"})
         if response := await self._api_request(
             endpoint="/v1/appliance/type/list/get",
             data=data,
         ):
-            return(data)
+            return data
         return None
 
     async def list_appliances(
         self,
     ) -> dict[int, dict[str, Any]] | None:
-        """ Get Toshiba IOLife devices."""
+        """Get Toshiba IOLife devices."""
         data = self._make_general_data()
         if response := await self._api_request(
             endpoint="/v2/appliance/user/list/get",
@@ -899,7 +900,6 @@ class ToshibaIOLife(MideaAirCloud):
             return appliances
         return None
 
-
     # FIXME: this isn't working:
     async def download_lua(
         self,
@@ -913,19 +913,20 @@ class ToshibaIOLife(MideaAirCloud):
         data = self._make_general_data()
         data.update(
             {
-            "appId": self._app_id,
-            "appKey": self._app_key,
-            "applianceMFCode": manufacturer_code,
-            "applianceType": hex(device_type),
-            "modelNumber": "",
-            "applianceSn": sn,
-            "version": "0",
-        })
+                "appId": self._app_id,
+                "appKey": self._app_key,
+                "applianceMFCode": manufacturer_code,
+                "applianceType": hex(device_type),
+                "modelNumber": "",
+                "applianceSn": sn,
+                "version": "0",
+            }
+        )
         if model_number is not None:
             data["modelNumber"] = model_number
         fnm = None
         if response := await self._api_request(
-            endpoint="/v1/appliance/protocol/lua/luaGet", # FIXME: Wrong URL?
+            endpoint="/v1/appliance/protocol/lua/luaGet",  # FIXME: Wrong URL?
             data=data,
         ):
             res = await self._session.get(response["url"])
