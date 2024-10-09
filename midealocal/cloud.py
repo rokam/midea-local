@@ -71,6 +71,12 @@ SUPPORTED_CLOUDS = {
         "app_key": "434a209a5ce141c3b726de067835d7f0",
         "api_url": "https://mapp.appsmb.com",  # codespell:ignore
     },
+    "Toshiba Iolife": {
+        "class_name": "ToshibaIOLife",
+        "app_id": "1203",
+        "app_key": "09c4d09f0da1513bb62dc7b6b0af9c11",
+        "api_url": "https://toshiba-app.smartmidea.net",  # codespell:ignore
+    },
 }
 
 DEFAULT_KEYS = {
@@ -878,6 +884,108 @@ class MideaAirCloud(MideaCloud):
                 appliances[int(appliance["id"])] = device_info
             return appliances
         return None
+
+
+class ToshibaIOLife(MideaAirCloud):
+    """Toshiba IOLife"""
+
+    async def list_appliance_types(
+        self,
+    ) -> dict[int, dict[str, Any]] | None:
+        """List Toshiba IOLife device types"""
+        data = self._make_general_data()
+        data.update({"applianceType": "0xFF"})
+        if response := await self._api_request(
+            endpoint="/v1/appliance/type/list/get",
+            data=data,
+        ):
+            return data
+        return None
+
+    async def list_appliances(
+        self,
+    ) -> dict[int, dict[str, Any]] | None:
+        """Get Toshiba IOLife devices."""
+        data = self._make_general_data()
+        if response := await self._api_request(
+            endpoint="/v2/appliance/user/list/get",
+            data=data,
+        ):
+            appliances = {}
+            for appliance in response["list"]:
+                try:
+                    model_number = int(appliance.get("modelNumber", 0))
+                except ValueError:
+                    model_number = 0
+
+                # Skip virtual batch devices:
+                if appliance.get("type") == "0x_BATCH_AC":
+                    continue
+                if appliance.get("id") == "virtual_ag_0xAC":
+                    continue
+                device_info = {
+                    "name": appliance.get("name"),
+                    "type": int(appliance.get("type"), 16),
+                    "sn": appliance.get("sn"),
+                    "sn8": "",
+                    "model_number": model_number,
+                    "manufacturer_code": appliance.get("enterpriseCode", "0000"),
+                    "model": "",
+                    "online": appliance.get("onlineStatus") == "1",
+                }
+                serial_num = device_info.get("sn")
+                device_info["sn8"] = (
+                    serial_num[9:17]
+                    if (serial_num and len(serial_num) > SN8_MIN_SERIAL_LENGTH)
+                    else ""
+                )
+                device_info["model"] = device_info.get("sn8")
+                appliances[int(appliance["id"])] = device_info
+            return appliances
+        return None
+
+    # FIXME: this isn't working:
+    async def download_lua(
+        self,
+        path: str,
+        device_type: int,
+        sn: str,
+        model_number: str | None = None,
+        manufacturer_code: str = "0000",
+    ) -> str | None:
+        """Download lua integration."""
+        data = self._make_general_data()
+        data.update(
+            {
+                "appId": self._app_id,
+                "appKey": self._app_key,
+                "applianceMFCode": manufacturer_code,
+                "applianceType": hex(device_type),
+                "modelNumber": "",
+                "applianceSn": sn,
+                "version": "0",
+            }
+        )
+        if model_number is not None:
+            data["modelNumber"] = model_number
+        fnm = None
+        if response := await self._api_request(
+            endpoint="/v1/appliance/protocol/lua/luaGet",  # FIXME: Wrong URL?
+            data=data,
+        ):
+            res = await self._session.get(response["url"])
+            if res.status == HTTPStatus.OK:
+                lua = await res.text()
+                if lua:
+                    stream = (
+                        'local bit = require "bit"\n'
+                        + self._security.aes_decrypt_with_fixed_key(lua)
+                    )
+                    stream = stream.replace("\r\n", "\n")
+                    fnm = f"{path}/{response['fileName']}"
+                    async with aiofiles.open(fnm, "w") as fp:
+                        await fp.write(stream)
+        return str(fnm) if fnm else None
 
 
 def get_midea_cloud(
