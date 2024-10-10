@@ -576,11 +576,14 @@ class MessageResponse(MessageBase):
         super().__init__()
         if message is None or len(message) < self.HEADER_LENGTH + 1:
             raise MessageLenError
+        _LOGGER.debug("MessageResponse - message: %s", message)
         self._header = message[: self.HEADER_LENGTH]
+        _LOGGER.debug("MessageResponse - header: %s", self._header)
         self.protocol_version = self._header[-2]
         self.message_type = MessageType(self._header[-1])
         self.device_type = DeviceType(self._header[2])
         body = message[self.HEADER_LENGTH : -1]
+        _LOGGER.debug("MessageResponse - body  : %s", body)
         self._body = MessageBody(body)
         self.body_type = self._body.body_type
 
