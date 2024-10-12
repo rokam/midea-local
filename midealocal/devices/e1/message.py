@@ -54,6 +54,24 @@ class MessagePower(MessageE1Base):
         return bytearray([power, 0x00, 0x00, 0x00])
 
 
+class MessageWork(MessageE1Base):
+    """E1 message work."""
+
+    def __init__(self, protocol_version: int) -> None:
+        """Initialize E1 message work."""
+        super().__init__(
+            protocol_version=protocol_version,
+            message_type=MessageType.set,
+            body_type=BodyType.X08,
+        )
+        self.work_status = 0x3
+        self.mode = 0
+
+    @property
+    def _body(self) -> bytearray:
+        return bytearray([self.work_status, self.mode, 0x00, 0x00])
+
+
 class MessageLock(MessageE1Base):
     """E1 message lock."""
 
