@@ -95,6 +95,16 @@ class DCGeneralMessageBody(MessageBody):
         super().__init__(body)
         self.power = body[1] > 0
         self.start = body[2] in [2, 6]
+        self.status = body[2]
+        self.program = body[4]
+        self.intensity = body[9]
+        self.dryness_level = body[10]
+        self.dry_temperature = body[10]
+        self.error_code = body[24]
+        self.door_warn = body[25]
+        self.ai_switch = body[27]
+        self.material = body[28]
+        self.water_box = body[29]
         self.washing_data = body[3:15]
         self.progress = 0
         self.time_remaining: float | None = None
