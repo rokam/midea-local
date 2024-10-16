@@ -14,6 +14,7 @@ from midealocal.devices.ed.message import (
     MessageEDResponse,
     MessageNewSet,
     MessageQuery,
+    MessageQuery01,
 )
 from midealocal.message import ListTypes, MessageType
 
@@ -39,9 +40,20 @@ class TestMessageQuery:
         """Test query body."""
         query = MessageQuery(
             protocol_version=ProtocolVersion.V1,
-            body_type=ListTypes.X02,
         )
-        expected_body = bytearray([0x02, 0x01])
+        expected_body = bytearray([0x00, 0x01])
+        assert query.body == expected_body
+
+
+class TestMessageQuery01:
+    """Test Message Query01."""
+
+    def test_query_body(self) -> None:
+        """Test query body."""
+        query = MessageQuery01(
+            protocol_version=ProtocolVersion.V1,
+        )
+        expected_body = bytearray([0x01, 0x01])
         assert query.body == expected_body
 
 

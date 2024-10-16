@@ -8,7 +8,13 @@ from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 from midealocal.message import ListTypes
 
-from .message import MessageEDResponse, MessageNewSet, MessageOldSet, MessageQuery
+from .message import (
+    MessageEDResponse,
+    MessageNewSet,
+    MessageOldSet,
+    MessageQuery,
+    MessageQuery01,
+)
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -77,9 +83,12 @@ class MideaEDDevice(MideaDevice):
         # if (self.sub_type > 342 or self.sub_type == 340) else False
         return True
 
-    def build_query(self) -> list[MessageQuery]:
+    def build_query(self) -> list[MessageQuery | MessageQuery01]:
         """Midea ED device build query."""
-        return [MessageQuery(self._message_protocol_version, self._device_class)]
+        return [
+            MessageQuery(self._message_protocol_version),
+            MessageQuery01(self._message_protocol_version),
+        ]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea ED device process message."""

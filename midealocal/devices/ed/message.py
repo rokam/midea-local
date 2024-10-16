@@ -64,8 +64,32 @@ class MessageEDBase(MessageRequest):
 class MessageQuery(MessageEDBase):
     """ED message query."""
 
-    def __init__(self, protocol_version: int, body_type: ListTypes) -> None:
+    def __init__(
+        self,
+        protocol_version: int,
+        body_type: ListTypes = ListTypes.X00,
+    ) -> None:
         """Initialize ED message query."""
+        super().__init__(
+            protocol_version=protocol_version,
+            message_type=MessageType.query,
+            body_type=body_type,
+        )
+
+    @property
+    def _body(self) -> bytearray:
+        return bytearray([0x01])
+
+
+class MessageQuery01(MessageEDBase):
+    """ED message query01."""
+
+    def __init__(
+        self,
+        protocol_version: int,
+        body_type: ListTypes = ListTypes.X01,
+    ) -> None:
+        """Initialize ED message query01."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,

@@ -6,7 +6,7 @@ import pytest
 
 from midealocal.const import ProtocolVersion
 from midealocal.devices.ed import DeviceAttributes, MideaEDDevice
-from midealocal.devices.ed.message import MessageQuery
+from midealocal.devices.ed.message import MessageQuery, MessageQuery01
 
 
 class TestMideaEDDevice:
@@ -89,8 +89,9 @@ class TestMideaEDDevice:
     def test_build_query(self) -> None:
         """Test build query."""
         queries = self.device.build_query()
-        assert len(queries) == 1
+        assert len(queries) == 2
         assert isinstance(queries[0], MessageQuery)
+        assert isinstance(queries[1], MessageQuery01)
 
     def test_set_attribute(self) -> None:
         """Test set attribute."""
