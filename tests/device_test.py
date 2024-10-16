@@ -5,12 +5,12 @@ from unittest.mock import MagicMock, patch
 import pytest
 
 from midealocal.cloud import DEFAULT_KEYS
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import (
     AuthException,
+    MessageResult,
     MideaDevice,
-    ParseMessageResult,
-    ProtocolVersion,
-    RefreshFailed,
+    NoSupportedProtocol,
 )
 from midealocal.devices.ac.message import MessageCapabilitiesQuery
 from midealocal.exceptions import SocketException
@@ -38,12 +38,12 @@ class MideaDeviceTest:
         self.device = MideaDevice(
             name="Test Device",
             device_id=1,
-            device_type=0xAC,
+            device_type=DeviceType.AC,
             ip_address="192.168.1.100",
             port=6444,
             token=DEFAULT_KEYS[99]["token"],
             key=DEFAULT_KEYS[99]["key"],
-            protocol=3,
+            device_protocol=ProtocolVersion.V3,
             model="test_model",
             subtype=1,
             attributes={},
@@ -64,7 +64,7 @@ class MideaDeviceTest:
             (TimeoutError, False),
             (OSError, False),
             (AuthException, False),
-            (RefreshFailed, False),
+            (NoSupportedProtocol, False),
             (None, True),
         ],
     )
@@ -189,7 +189,7 @@ class MideaDeviceTest:
             self.device.authenticate()
             self.device.send_message(bytearray([0x0] * 20))
             self.device._socket = None
-            self.device._protocol = ProtocolVersion.V2
+            self.device._device_protocol_version = ProtocolVersion.V2
             self.device.send_message(bytearray([0x0] * 20))
 
     def test_get_capabilities(self) -> None:
@@ -229,9 +229,9 @@ class MideaDeviceTest:
                 self.device,
                 "parse_message",
                 side_effect=[
-                    ParseMessageResult.SUCCESS,
-                    ParseMessageResult.PADDING,
-                    ParseMessageResult.ERROR,
+                    MessageResult.SUCCESS,
+                    MessageResult.PADDING,
+                    MessageResult.ERROR,
                 ],
             ),
         ):
@@ -246,11 +246,11 @@ class MideaDeviceTest:
             self.device.refresh_status(True)  # SUCCESS
             self.device.refresh_status(True)  # PADDING
 
-            with pytest.raises(RefreshFailed):
+            with pytest.raises(NoSupportedProtocol):
                 self.device.refresh_status(True)  # ERROR
-            with pytest.raises(RefreshFailed):
+            with pytest.raises(NoSupportedProtocol):
                 self.device.refresh_status(True)  # Timeout
-            with pytest.raises(RefreshFailed):
+            with pytest.raises(NoSupportedProtocol):
                 self.device.refresh_status(True)  # Unsupported protocol
 
     def test_parse_message(self) -> None:
@@ -281,20 +281,15 @@ class MideaDeviceTest:
                 ],
             ),
         ):
-            assert (
-                self.device.parse_message(bytearray([])) == ParseMessageResult.PADDING
-            )
-            self.device._protocol = ProtocolVersion.V2
-            assert self.device.parse_message(bytearray([])) == ParseMessageResult.ERROR
+            assert self.device.parse_message(bytearray([])) == MessageResult.PADDING
+            self.device._device_protocol_version = ProtocolVersion.V2
+            assert self.device.parse_message(bytearray([])) == MessageResult.ERROR
             with patch.object(
                 self.device,
                 "process_message",
                 side_effect=[{"power": True}, {}, NotImplementedError()],
             ):
-                assert (
-                    self.device.parse_message(bytearray([]))
-                    == ParseMessageResult.SUCCESS
-                )
+                assert self.device.parse_message(bytearray([])) == MessageResult.SUCCESS
 
     def test_pre_process_message(self) -> None:
         """Test pre process message."""
@@ -315,8 +310,8 @@ class MideaDeviceTest:
     def test_send_command(self) -> None:
         """Test send command."""
         with patch.object(self.device, "build_send", side_effect=[None, OSError()]):
-            self.device.send_command(0x03, bytearray([0x1] * 10))
-            self.device.send_command(0x03, bytearray([0x1] * 10))
+            self.device.send_command(MessageType.query, bytearray([0x1] * 10))
+            self.device.send_command(MessageType.query, bytearray([0x1] * 10))
 
     def test_send_heartbeat(self) -> None:
         """Test send heartbeat."""

@@ -2,7 +2,14 @@
 
 from typing import Any
 
-from midealocal.message import MessageBody, MessageRequest, MessageResponse, MessageType
+from midealocal.const import DeviceType
+from midealocal.message import (
+    ListTypes,
+    MessageBody,
+    MessageRequest,
+    MessageResponse,
+    MessageType,
+)
 
 NEW_PROTOCOL_PARAMS = {
     "none": 0x00,
@@ -21,12 +28,12 @@ class MessageE3Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize E3 message base."""
         super().__init__(
-            device_type=0xE3,
+            device_type=DeviceType.E3,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -45,7 +52,7 @@ class MessageQuery(MessageE3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
     @property
@@ -61,16 +68,16 @@ class MessagePower(MessageE3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
         self.power = False
 
     @property
     def _body(self) -> bytearray:
         if self.power:
-            self.body_type = 0x01
+            self.body_type = ListTypes.X01
         else:
-            self.body_type = 0x02
+            self.body_type = ListTypes.X02
         return bytearray([0x01])
 
 
@@ -82,7 +89,7 @@ class MessageSet(MessageE3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x04,
+            body_type=ListTypes.X04,
         )
 
         self.target_temperature = 0
@@ -131,7 +138,7 @@ class MessageNewProtocolSet(MessageE3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x14,
+            body_type=ListTypes.X14,
         )
         self.key = "none"
         self.value: Any = None

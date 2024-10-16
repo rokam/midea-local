@@ -1,7 +1,8 @@
 """Midea local DC message."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -15,12 +16,12 @@ class MessageDCBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize DC message base."""
         super().__init__(
-            device_type=0xDC,
+            device_type=DeviceType.DC,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -39,7 +40,7 @@ class MessageQuery(MessageDCBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x03,
+            body_type=ListTypes.X03,
         )
 
     @property
@@ -55,7 +56,7 @@ class MessagePower(MessageDCBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
         self.power = False
 
@@ -73,7 +74,7 @@ class MessageStart(MessageDCBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
         self.start = False
         self.washing_data = bytearray([])
@@ -112,7 +113,7 @@ class MessageDCResponse(MessageResponse):
         """Initialize DC message response."""
         super().__init__(bytearray(message))
         if self.message_type in [MessageType.query, MessageType.set] or (
-            self.message_type == MessageType.notify1 and self.body_type == BodyType.X04
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.X04
         ):
             self.set_body(DCGeneralMessageBody(super().body))
         self.set_attr()

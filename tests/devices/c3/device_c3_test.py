@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from midealocal.const import ProtocolVersion
 from midealocal.devices.c3 import (
     MideaC3Device,
 )
@@ -29,7 +30,7 @@ class TestMideaC3Device:
             port=12345,
             token="AA",
             key="BB",
-            protocol=1,
+            device_protocol=ProtocolVersion.V1,
             model="test_model",
             subtype=1,
             customize='{"temperature_step": 1}',
@@ -51,7 +52,8 @@ class TestMideaC3Device:
         assert self.device.attributes[DeviceAttributes.zone2_water_temp_mode] is False
         assert self.device.attributes[DeviceAttributes.silent_mode] is False
         assert (
-            self.device.attributes[DeviceAttributes.SILENT_LEVEL] == C3SilentLevel.OFF
+            self.device.attributes[DeviceAttributes.SILENT_LEVEL]
+            == C3SilentLevel.OFF.name
         )
         assert self.device.attributes[DeviceAttributes.eco_mode] is False
         assert self.device.attributes[DeviceAttributes.tbh] is False
@@ -90,6 +92,7 @@ class TestMideaC3Device:
         assert self.device.attributes[DeviceAttributes.outdoor_temperature] is None
         assert self.device.attributes[DeviceAttributes.error_code] == 0
         assert self.device.temperature_step == 1
+        assert len(self.device.silent_modes) == 3
 
     def test_set_attribute(self) -> None:
         """Test set attribute."""
@@ -108,7 +111,7 @@ class TestMideaC3Device:
 
             self.device.set_attribute(
                 DeviceAttributes.SILENT_LEVEL.value,
-                C3SilentLevel.SILENT,
+                C3SilentLevel.SILENT.name,
             )
 
     def test_build_query(self) -> None:

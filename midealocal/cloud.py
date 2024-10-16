@@ -12,7 +12,7 @@ from threading import Lock
 from typing import Any, cast
 
 import aiofiles
-from aiohttp import ClientConnectionError, ClientSession
+from aiohttp import ClientConnectionError, ClientSession, ClientTimeout
 from commonregex import CommonRegex
 
 from midealocal.exceptions import ElementMissing
@@ -42,9 +42,9 @@ SUPPORTED_CLOUDS = {
         ).decode(),
         "api_url": "https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=",
     },
-    "MSmartHome": {
+    "SmartHome": {
         "default": True,
-        "class_name": "MSmartHomeCloud",
+        "class_name": "SmartHomeCloud",
         "app_id": "1010",
         "app_key": "ac21b9f9cbfe4ca5a88562ef25e2b768",
         "iot_key": bytes.fromhex(format(7882822598523843940, "x")).decode(),
@@ -132,8 +132,13 @@ def _redact_data(data: str) -> str:
         + getattr(cr, "street_addresses", [])
     )
     for token in token_list:
-        m = len(token)
-        elm = r"\b" + token + r"\b"
+        item = token
+        if len(item) > 0 and item[0] == "'":
+            item = item[1:]
+        if len(item) == 0:
+            break
+        m = len(item)
+        elm = r"\b" + item + r"\b"
         data = re.sub(elm, block * m, data)
     return data
 
@@ -206,7 +211,7 @@ class MideaCloud:
                         url,
                         headers=header,
                         data=dump_data,
-                        timeout=10,
+                        timeout=ClientTimeout(10),
                     )
                     raw = await r.read()
                     _LOGGER.debug(
@@ -436,7 +441,25 @@ class MeijuCloud(MideaCloud):
         return None
 
     async def get_device_info(self, device_id: int) -> dict[str, Any] | None:
-        """Get device information."""
+        """Get device information.
+
+        API url: https://mp-prod.smartmidea.net/mas/v5/app/proxy?alias=/v1/appliance/info/get
+        header:
+        input: {'applianceCode': 21000***830**18,
+            'reqId': 'b11bb9083be6d77906fe1c9f019cdea0', 'stamp': '20240710092728'}
+        response: b'{"code":0,"msg":null,"data":{"id":null,
+            "applianceCode":21000***830**18,
+            "sn":"7105f17f36a6afcce272f8053e2be60fd74b1a4baca120afaad83011bb50e8d5f3678bf88e32ea11885394e1a32c9c0e",
+            "onlineStatus":1,"type":"0xDB","modelNumber":"12877",
+            "name":"device_name_bytearray",
+            "des":null,"activeStatus":1,"activeTime":"2024-06-12 10:45:45",
+            "masterId":null,"wifiVersion":"059009012205","enterprise":"0000",
+            "isOtherEquipment":null,"attrs":null,"roomName":null,
+            "btMac":"54B8740FA801","btToken":null,"hotspotName":null,
+            "isBluetooth":0,"bindType":null,"ability":null,"nameChanged":null,
+            "sn8":"38127874","supportWot":false,"templateOfTSL":null,
+            "shadowLevel":null,"smartProductId":10004256,"brand":null}}'
+        """
         data = {"applianceCode": device_id}
         if response := await self._api_request(
             endpoint="/v1/appliance/info/get",
@@ -456,6 +479,27 @@ class MeijuCloud(MideaCloud):
                 "manufacturer_code": response.get("enterpriseCode", "0000"),
                 "model": response.get("productModel"),
                 "online": response.get("onlineStatus") == "1",
+                "des": response.get("des", None),
+                "active_status": response.get("activeStatus", None),
+                "active_time": response.get("activeTime", None),
+                "master_id": response.get("masterId", None),
+                "wifi_version": response.get("wifiVersion", None),
+                "enterprise": response.get("enterprise", None),
+                "is_other_equipment": response.get("isOtherEquipment", None),
+                "attrs": response.get("attrs", None),
+                "room_name": response.get("roomName", None),
+                "bt_mac": response.get("btMac", None),
+                "bt_token": response.get("btToken", None),
+                "hotspot_name": response.get("hotspotName", None),
+                "is_bluetooth": response.get("isBluetooth", None),
+                "bind_type": response.get("bindType", None),
+                "ability": response.get("ability", None),
+                "name_changed": response.get("nameChanged", None),
+                "support_wot": response.get("supportWot", None),
+                "template_of_tsl": response.get("templateOfTSL", None),
+                "shadow_level": response.get("shadowLevel", None),
+                "smart_product_id": response.get("smartProductId", None),
+                "brand": response.get("brand", None),
             }
             sn8 = device_info.get("sn8")
             if sn8 is None or len(sn8) == 0:
@@ -477,7 +521,7 @@ class MeijuCloud(MideaCloud):
         """Download lua integration."""
         data = {
             "applianceSn": sn,
-            "applianceType": f".{f'x{device_type:02x}'}",
+            "applianceType": hex(device_type),
             "applianceMFCode": manufacturer_code,
             "version": "0",
             "iotAppId": self._app_id,
@@ -502,7 +546,7 @@ class MeijuCloud(MideaCloud):
         return str(fnm) if fnm else None
 
 
-class MSmartHomeCloud(MideaCloud):
+class SmartHomeCloud(MideaCloud):
     """MSmart Home Cloud."""
 
     def __init__(
@@ -612,7 +656,7 @@ class MSmartHomeCloud(MideaCloud):
                     response["randomData"],
                 )
                 return True
-        _LOGGER.warning("MSmartHome Cloud login failed for device %s", self._device_id)
+        _LOGGER.warning("SmartHome Cloud login failed for device %s", self._device_id)
         return False
 
     async def list_appliances(
@@ -758,7 +802,7 @@ class MideaAirCloud(MideaCloud):
                         url,
                         headers=header,
                         data=data,
-                        timeout=10,
+                        timeout=ClientTimeout(10),
                     )
                     raw = await r.read()
                     _LOGGER.debug(

@@ -5,6 +5,7 @@ import math
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import Message26Response, MessageQuery, MessageSet
@@ -58,7 +59,7 @@ class Midea26Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,  # noqa: ARG002
@@ -67,12 +68,12 @@ class Midea26Device(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0x26,
+            device_type=DeviceType.X26,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -119,7 +120,7 @@ class Midea26Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea x26 device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea x26 device process message."""
@@ -149,7 +150,7 @@ class Midea26Device(MideaDevice):
             DeviceAttributes.mode,
             DeviceAttributes.direction,
         ]:
-            message = MessageSet(self._protocol_version)
+            message = MessageSet(self._message_protocol_version)
             message.fields = self._fields
             message.main_light = self._attributes[DeviceAttributes.main_light]
             message.night_light = self._attributes[DeviceAttributes.night_light]

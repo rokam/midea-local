@@ -12,7 +12,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - uses: wagoid/commitlint-github-action@v6.0.1
+      - uses: wagoid/commitlint-github-action@v6.1.2
+        with:
+          configFile: .commitlint.config.mjs
   build:
     needs:
       - commitlint

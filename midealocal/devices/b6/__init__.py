@@ -5,6 +5,7 @@ import logging
 from enum import StrEnum
 from typing import Any
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageB6Response, MessageQuery, MessageSet
@@ -35,7 +36,7 @@ class MideaB6Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,
@@ -44,12 +45,12 @@ class MideaB6Device(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xB6,
+            device_type=DeviceType.B6,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -80,12 +81,12 @@ class MideaB6Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea B6 device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea B6 device process message."""
         message = MessageB6Response(msg)
-        self._protocol_version = message.protocol_version
+        self._message_protocol_version = message.protocol_version
         _LOGGER.debug("[%s] Received: %s", self.device_id, message)
         new_status = {}
         for status in self._attributes:
@@ -117,30 +118,30 @@ class MideaB6Device(MideaDevice):
         message = None
         if attr == DeviceAttributes.fan_speed:
             if int(value) < len(self._speeds):
-                message = MessageSet(self._protocol_version)
+                message = MessageSet(self._message_protocol_version)
                 message.fan_level = list(self._speeds.keys())[int(value)]
         elif attr == DeviceAttributes.mode:
             if value in self._speeds.values():
-                message = MessageSet(self._protocol_version)
+                message = MessageSet(self._message_protocol_version)
                 message.fan_level = list(self._speeds.keys())[
                     list(self._speeds.values()).index(str(value))
                 ]
             elif not value:
-                message = MessageSet(self._protocol_version)
+                message = MessageSet(self._message_protocol_version)
                 message.power = False
         elif attr == DeviceAttributes.power:
-            message = MessageSet(self._protocol_version)
+            message = MessageSet(self._message_protocol_version)
             message.power = bool(value)
             message.fan_level = self._power_speed
         elif attr == DeviceAttributes.light:
-            message = MessageSet(self._protocol_version)
+            message = MessageSet(self._message_protocol_version)
             message.light = int(value)
         if message is not None:
             self.build_send(message)
 
     def turn_on(self, fan_speed: int | None = None, mode: str | None = None) -> None:
         """Midea B6 device turn on."""
-        message = MessageSet(self._protocol_version)
+        message = MessageSet(self._message_protocol_version)
         message.power = True
         if fan_speed is not None and fan_speed < len(self._speeds):
             message.fan_level = list(self._speeds.keys())[fan_speed]

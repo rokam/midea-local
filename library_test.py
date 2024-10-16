@@ -106,7 +106,7 @@ async def main() -> None:
         port=first_device["port"],
         token=token,
         key=key,
-        protocol=first_device["protocol"],
+        device_protocol=first_device["protocol"],
         model=first_device["model"],
         subtype=0,
         customize="",

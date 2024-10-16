@@ -8,6 +8,27 @@
     "sn8": "",
     "enterpriseCode": "1234",
     "onlineStatus": "0",
-    "applianceCode": "2"
+    "applianceCode": "2",
+    "des": null,
+    "activeStatus": 1,
+    "activeTime": "2024-06-12 10:45:45",
+    "masterId": null,
+    "wifiVersion": "059009012205",
+    "enterprise": "0000",
+    "isOtherEquipment": null,
+    "attrs": null,
+    "roomName": null,
+    "btMac": "54B8740FA801",
+    "btToken": null,
+    "hotspotName": null,
+    "isBluetooth": 0,
+    "bindType": null,
+    "ability": null,
+    "nameChanged": null,
+    "supportWot": false,
+    "templateOfTSL": null,
+    "shadowLevel": null,
+    "smartProductId": 10004256,
+    "brand": null
   }
 }

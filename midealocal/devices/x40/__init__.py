@@ -1,11 +1,13 @@
 """Midea local x40 device."""
 
+import json
 import logging
 import math
 from enum import StrEnum
 from typing import Any, ClassVar
 
-from midealocal.device import DeviceType, MideaDevice
+from midealocal.const import DeviceType, ProtocolVersion
+from midealocal.device import MideaDevice
 
 from .message import MessageQuery, MessageSet, MessageX40Response
 
@@ -40,10 +42,10 @@ class MideaX40Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
-        customize: str,  # noqa: ARG002
+        customize: str,
     ) -> None:
         """Initialize Midea x40 Device."""
         super().__init__(
@@ -54,7 +56,7 @@ class MideaX40Device(MideaDevice):
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -67,6 +69,14 @@ class MideaX40Device(MideaDevice):
             },
         )
         self._fields: dict[str, Any] = {}
+        self._precision_halves: bool | None = None
+        self._default_precision_halves = False
+        self.set_customize(customize)
+
+    @property
+    def precision_halves(self) -> bool | None:
+        """Midea 40 device precision halves."""
+        return self._precision_halves
 
     @property
     def directions(self) -> list[str]:
@@ -89,7 +99,7 @@ class MideaX40Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea x40 Device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea x40 Device process message."""
@@ -100,6 +110,11 @@ class MideaX40Device(MideaDevice):
         for status in self._attributes:
             if hasattr(message, str(status)):
                 value = getattr(message, str(status))
+                if (
+                    self._precision_halves
+                    and status == DeviceAttributes.current_temperature
+                ):
+                    value /= 2
                 if status == DeviceAttributes.direction:
                     self._attributes[status] = self._directions[
                         self._convert_from_midea_direction(value)
@@ -118,7 +133,7 @@ class MideaX40Device(MideaDevice):
             DeviceAttributes.ventilation,
             DeviceAttributes.smelly_sensor,
         ]:
-            message = MessageSet(self._protocol_version)
+            message = MessageSet(self._message_protocol_version)
             message.fields = self._fields
             message.light = self._attributes[DeviceAttributes.light]
             message.ventilation = self._attributes[DeviceAttributes.ventilation]
@@ -138,6 +153,18 @@ class MideaX40Device(MideaDevice):
             else:
                 setattr(message, str(attr), value)
             self.build_send(message)
+
+    def set_customize(self, customize: str) -> None:
+        """Midea 40 device set customize."""
+        self._precision_halves = self._default_precision_halves
+        if customize and len(customize) > 0:
+            try:
+                params = json.loads(customize)
+                if params and "precision_halves" in params:
+                    self._precision_halves = params.get("precision_halves")
+            except Exception:
+                _LOGGER.exception("[%s] Set customize error", self.device_id)
+            self.update_all({"precision_halves": self._precision_halves})
 
 
 class MideaAppliance(MideaX40Device):

@@ -1,8 +1,8 @@
 """B0 Midea local message."""
 
-from midealocal.const import MAX_BYTE_VALUE
+from midealocal.const import MAX_BYTE_VALUE, DeviceType, ProtocolVersion
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -18,12 +18,12 @@ class MessageB0Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize B0 message base."""
         super().__init__(
-            device_type=0xB0,
+            device_type=DeviceType.B0,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -37,12 +37,12 @@ class MessageB0Base(MessageRequest):
 class MessageQuery00(MessageB0Base):
     """B0 message query 00."""
 
-    def __init__(self, protocol_version: int) -> None:
+    def __init__(self, protocol_version: ProtocolVersion) -> None:
         """Initialize B0 message query 00."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x00,
+            body_type=ListTypes.X00,
         )
 
     @property
@@ -58,7 +58,7 @@ class MessageQuery01(MessageB0Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
     @property
@@ -108,9 +108,9 @@ class MessageB0Response(MessageResponse):
         """Initialize B0 message response."""
         super().__init__(message)
         if self.message_type in [MessageType.notify1, MessageType.query]:
-            if self.body_type == BodyType.X01:
+            if self.body_type == ListTypes.X01:
                 self.set_body(B0Message01Body(super().body))
-            elif self.body_type == BodyType.X04:
+            elif self.body_type == ListTypes.X04:
                 pass
             else:
                 self.set_body(B0MessageBody(super().body))

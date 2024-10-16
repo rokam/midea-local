@@ -2,13 +2,13 @@
 
 from enum import IntEnum
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    NONE_VALUE,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
     MessageType,
-    SubBodyType,
 )
 
 
@@ -25,12 +25,12 @@ class MessageEABase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int = NONE_VALUE,
+        message_type: MessageType,
+        body_type: ListTypes = ListTypes.X00,
     ) -> None:
         """Initialize EA message base."""
         super().__init__(
-            device_type=0xEA,
+            device_type=DeviceType.EA,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -134,46 +134,42 @@ class MessageEAResponse(MessageResponse):
         super().__init__(bytearray(message))
         if (
             self.message_type == MessageType.notify1
-            and super().body[3] == SubBodyType.X01
+            and super().body[3] == ListTypes.X01
         ):
             self.set_body(EABodyNew(super().body))
         elif self.protocol_version == 0:
             if (
                 self.message_type == MessageType.set
-                and super().body[5] == SubBodyType.X16
+                and super().body[5] == ListTypes.X16
             ):  # 381
                 self.set_body(EABody1(super().body))
             elif self.message_type == MessageType.query:
                 if (
-                    super().body[6] == SubBodyType.X52
-                    and super().body[7] == SubBodyType.C3
+                    super().body[6] == ListTypes.X52 and super().body[7] == ListTypes.C3
                 ):  # 404
                     self.set_body(EABody2(super().body))
-                elif super().body[5] == SubBodyType.X3D:  # 420
+                elif super().body[5] == ListTypes.X3D:  # 420
                     self.set_body(EABody1(super().body))
             elif (
                 self.message_type == MessageType.notify1
-                and super().body[5] == SubBodyType.X3D
+                and super().body[5] == ListTypes.X3D
             ):  # 463
                 self.set_body(EABody1(super().body))
         elif (
-            (
-                self.message_type == MessageType.set
-                and super().body[3] == SubBodyType.X02
-            )
+            (self.message_type == MessageType.set and super().body[3] == ListTypes.X02)
             or (
                 self.message_type == MessageType.query
-                and super().body[3] == SubBodyType.X03
+                and super().body[3] == ListTypes.X03
             )
             or (
                 self.message_type == MessageType.notify1
-                and super().body[3] == SubBodyType.X04
+                and super().body[3] == ListTypes.X04
             )
         ):  # 351
             self.set_body(EABody3(super().body))
         elif (
             self.message_type == MessageType.notify1
-            and super().body[3] == SubBodyType.X06
+            and super().body[3] == ListTypes.X06
         ):
             self.mode = super().body[4] + (super().body[5] << 8)
         self.set_attr()

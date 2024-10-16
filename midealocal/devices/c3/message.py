@@ -1,13 +1,15 @@
 """Midea local C3 message."""
 
-from midealocal.devices.c3.const import C3SilentLevel
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
     MessageType,
 )
+
+from .const import C3SilentLevel
 
 TEMP_NEG_VALUE = 127
 
@@ -18,12 +20,12 @@ class MessageC3Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize C3 message base."""
         super().__init__(
-            device_type=0xC3,
+            device_type=DeviceType.C3,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -37,7 +39,7 @@ class MessageC3Base(MessageRequest):
 class MessageQuery(MessageC3Base):
     """C3 message query."""
 
-    def __init__(self, protocol_version: int, body_type: BodyType) -> None:
+    def __init__(self, protocol_version: int, body_type: ListTypes) -> None:
         """Initialize C3 message query."""
         super().__init__(
             protocol_version=protocol_version,
@@ -55,7 +57,7 @@ class MessageQueryBasic(MessageQuery):
 
     def __init__(self, protocol_version: int) -> None:
         """Initialize C3 message query basic."""
-        super().__init__(protocol_version, BodyType.X01)
+        super().__init__(protocol_version, ListTypes.X01)
 
 
 class MessageQuerySilence(MessageQuery):
@@ -63,7 +65,7 @@ class MessageQuerySilence(MessageQuery):
 
     def __init__(self, protocol_version: int) -> None:
         """Initialize C3 message query silence."""
-        super().__init__(protocol_version, BodyType.X05)
+        super().__init__(protocol_version, ListTypes.X05)
 
 
 class MessageSet(MessageC3Base):
@@ -74,7 +76,7 @@ class MessageSet(MessageC3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=BodyType.X01,
+            body_type=ListTypes.X01,
         )
         self.zone1_power = False
         self.zone2_power = False
@@ -125,7 +127,7 @@ class MessageSetSilent(MessageC3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=BodyType.X05,
+            body_type=ListTypes.X05,
         )
         self.silent_mode = False
         self.silent_level = C3SilentLevel.OFF
@@ -155,7 +157,7 @@ class MessageSetECO(MessageC3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=BodyType.X07,
+            body_type=ListTypes.X07,
         )
         self.eco_mode = False
 
@@ -240,12 +242,12 @@ class C3QuerySilenceMessageBody(MessageBody):
     def __init__(self, body: bytearray, data_offset: int = 0) -> None:
         """Initialize C3 notify1 message body."""
         super().__init__(body)
-        self.silence_mode = body[data_offset] & 0x1 > 0
-        self.silence_level = (
+        self.silent_mode = body[data_offset] & 0x1 > 0
+        self.silent_level = C3SilentLevel(
             (body[data_offset] & 0x1) + ((body[data_offset] & 0x8) >> 2)
-            if self.silence_mode
-            else C3SilentLevel.OFF
-        )
+            if self.silent_mode
+            else C3SilentLevel.OFF.value,
+        ).name
         # Message protocol information:
         # silence_function_state: Byte 1, BIT 0
         # silence_timer1_state: Byte 1, BIT 1
@@ -270,13 +272,13 @@ class MessageC3Response(MessageResponse):
         if (
             self.message_type
             in [MessageType.set, MessageType.notify1, MessageType.query]
-            and self.body_type == BodyType.X01
+            and self.body_type == ListTypes.X01
         ) or self.message_type == MessageType.notify2:
             self.set_body(C3MessageBody(super().body, data_offset=1))
         elif (
-            self.message_type == MessageType.notify1 and self.body_type == BodyType.X04
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.X04
         ):
             self.set_body(C3Notify1MessageBody(super().body, data_offset=1))
-        elif self.message_type == MessageType.query and self.body_type == BodyType.X05:
+        elif self.message_type == MessageType.query and self.body_type == ListTypes.X05:
             self.set_body(C3QuerySilenceMessageBody(super().body, data_offset=1))
         self.set_attr()

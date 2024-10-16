@@ -4,6 +4,7 @@ import logging
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageA1Response, MessageQuery, MessageSet
@@ -57,7 +58,7 @@ class MideaA1Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,  # noqa: ARG002
@@ -66,12 +67,12 @@ class MideaA1Device(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xA1,
+            device_type=DeviceType.A1,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -108,12 +109,12 @@ class MideaA1Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea A1 device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea A1 device process message."""
         message = MessageA1Response(bytearray(msg))
-        self._protocol_version = message.protocol_version
+        self._message_protocol_version = message.protocol_version
         _LOGGER.debug("[%s] Received: %s", self.device_id, message)
         new_status = {}
         for status in self._attributes:
@@ -133,21 +134,32 @@ class MideaA1Device(MideaDevice):
                     self._attributes[status] = str(value)
                 else:
                     self._attributes[status] = value
-                tank_full = self._attributes[DeviceAttributes.tank] >= int(
-                    self._attributes[DeviceAttributes.water_level_set],
+                tank_full = self._attributes[DeviceAttributes.tank_full]
+                tank = self._attributes[DeviceAttributes.tank]
+                water_level = int(self._attributes[DeviceAttributes.water_level_set])
+                tank_full_calculated = tank >= water_level if bool(tank) else False
+                _LOGGER.debug(
+                    "Device - tank: %s, tank_full: %s, \
+                                     water_level: %s, tank_full_calculated: %s",
+                    tank,
+                    tank_full,
+                    water_level,
+                    tank_full_calculated,
                 )
-                if (
-                    self._attributes[DeviceAttributes.tank_full] is None
-                    or self._attributes[DeviceAttributes.tank_full] != tank_full
-                ):
-                    self._attributes[DeviceAttributes.tank_full] = tank_full
-                    new_status[str(DeviceAttributes.tank_full)] = tank_full
+                if tank_full is None or tank_full != tank_full_calculated:
+                    self._attributes[DeviceAttributes.tank_full] = tank_full_calculated
+                    new_status[str(DeviceAttributes.tank_full)] = tank_full_calculated
                 new_status[str(status)] = self._attributes[status]
+                _LOGGER.debug(
+                    "Device after - new_status: %s, tank_full: %s",
+                    new_status,
+                    self._attributes[DeviceAttributes.tank_full],
+                )
         return new_status
 
     def make_message_set(self) -> MessageSet:
         """Midea A1 device make message set."""
-        message = MessageSet(self._protocol_version)
+        message = MessageSet(self._message_protocol_version)
         message.power = self._attributes[DeviceAttributes.power]
         message.prompt_tone = self._attributes[DeviceAttributes.prompt_tone]
         message.child_lock = self._attributes[DeviceAttributes.child_lock]

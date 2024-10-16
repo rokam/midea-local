@@ -4,6 +4,7 @@ from unittest.mock import patch
 
 import pytest
 
+from midealocal.const import ProtocolVersion
 from midealocal.devices.ac import DeviceAttributes, MideaACDevice
 from midealocal.devices.ac.message import (
     MessageCapabilitiesQuery,
@@ -29,7 +30,7 @@ class TestMideaACDevice:
             port=12345,
             token="AA",
             key="BB",
-            protocol=1,
+            device_protocol=ProtocolVersion.V1,
             model="test_model",
             subtype=1,
             customize='{"temperature_step": 1, "power_analysis_method": 2}',

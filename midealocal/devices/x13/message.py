@@ -1,7 +1,8 @@
 """Midea local x13 device."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -17,12 +18,12 @@ class Message13Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize X13 message base."""
         super().__init__(
-            device_type=0x13,
+            device_type=DeviceType.X13,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -41,7 +42,7 @@ class MessageQuery(Message13Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x24,
+            body_type=ListTypes.X24,
         )
 
     @property
@@ -57,7 +58,7 @@ class MessageSet(Message13Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x00,
+            body_type=ListTypes.X00,
         )
         self.brightness: int | None = None
         self.color_temperature: int | None = None
@@ -68,16 +69,16 @@ class MessageSet(Message13Base):
     def _body(self) -> bytearray:
         body_byte = 0x00
         if self.power is not None:
-            self.body_type = 0x01
+            self.body_type = ListTypes.X01
             body_byte = 0x01 if self.power else 0x00
         elif self.effect is not None and self.effect in range(1, 6):
-            self.body_type = 0x02
+            self.body_type = ListTypes.X01
             body_byte = self.effect + 1
         elif self.color_temperature is not None:
-            self.body_type = 0x03
+            self.body_type = ListTypes.X03
             body_byte = self.color_temperature
         elif self.brightness is not None:
-            self.body_type = 0x04
+            self.body_type = ListTypes.X04
             body_byte = self.brightness
         return bytearray([body_byte, 0x00, 0x00, 0x00])
 
@@ -111,9 +112,9 @@ class Message13Response(MessageResponse):
     def __init__(self, message: bytes) -> None:
         """Initialize X13 message response."""
         super().__init__(bytearray(message))
-        if self.body_type == BodyType.A4:
+        if self.body_type == ListTypes.A4:
             self.set_body(MessageMainLightBody(super().body))
-        elif self.message_type == MessageType.set and self.body_type > BodyType.X80:
+        elif self.message_type == MessageType.set and self.body_type > ListTypes.X80:
             self.set_body(MessageMainLightResponseBody(super().body))
         self.control_success: bool
         self.set_attr()

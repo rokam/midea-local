@@ -2,6 +2,7 @@
 
 import pytest
 
+from midealocal.const import ProtocolVersion
 from midealocal.devices.da.message import (
     MessageDABase,
     MessageDAResponse,
@@ -9,6 +10,7 @@ from midealocal.devices.da.message import (
     MessageQuery,
     MessageStart,
 )
+from midealocal.message import ListTypes, MessageType
 
 
 class TestMessageDABase:
@@ -16,7 +18,11 @@ class TestMessageDABase:
 
     def test_body_not_implemented(self) -> None:
         """Test body not implemented."""
-        msg = MessageDABase(protocol_version=1, message_type=1, body_type=1)
+        msg = MessageDABase(
+            protocol_version=ProtocolVersion.V1,
+            message_type=MessageType.query,
+            body_type=ListTypes.X01,
+        )
         with pytest.raises(NotImplementedError):
             _ = msg.body
 
@@ -26,7 +32,7 @@ class TestMessageQuery:
 
     def test_query_body(self) -> None:
         """Test query body."""
-        query = MessageQuery(protocol_version=1)
+        query = MessageQuery(protocol_version=ProtocolVersion.V1)
         expected_body = bytearray([0x03])
         assert query.body == expected_body
 
@@ -36,7 +42,7 @@ class TestMessagePower:
 
     def test_power_body(self) -> None:
         """Test power body."""
-        power = MessagePower(protocol_version=1)
+        power = MessagePower(protocol_version=ProtocolVersion.V1)
         expected_body = bytearray([0x02, 0x00, 0xFF])
         assert power.body == expected_body
         power.power = True
@@ -49,7 +55,7 @@ class TestMessageStart:
 
     def test_start_body(self) -> None:
         """Test start body."""
-        start = MessageStart(protocol_version=1)
+        start = MessageStart(protocol_version=ProtocolVersion.V1)
         expected_body = bytearray([0x02, 0xFF, 0x00])
         assert start.body == expected_body
         start.start = True

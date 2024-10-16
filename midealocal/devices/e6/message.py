@@ -1,7 +1,8 @@
 """Midea local E6 message."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    NONE_VALUE,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -12,13 +13,17 @@ from midealocal.message import (
 class MessageE6Base(MessageRequest):
     """E6 message base."""
 
-    def __init__(self, protocol_version: int, message_type: int) -> None:
+    def __init__(
+        self,
+        protocol_version: int,
+        message_type: MessageType,
+    ) -> None:
         """Initialize E6 message base."""
         super().__init__(
-            device_type=0xE6,
+            device_type=DeviceType.E6,
             protocol_version=protocol_version,
             message_type=message_type,
-            body_type=NONE_VALUE,
+            body_type=ListTypes.X00,
         )
 
     @property

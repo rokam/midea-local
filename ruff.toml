@@ -2,7 +2,7 @@ target-version = "py311"
 
 lint.select = ["ALL"]
 
-lint.preview = true
+lint.preview = false
 
 lint.ignore = [
     "ANN101",   # Missing type annotation for `self` in method

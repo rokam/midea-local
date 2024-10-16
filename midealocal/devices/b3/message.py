@@ -1,8 +1,8 @@
 """Midea local B3 message."""
 
-from midealocal.const import MAX_BYTE_VALUE
+from midealocal.const import MAX_BYTE_VALUE, DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -23,12 +23,12 @@ class MessageB3Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize B3 message base."""
         super().__init__(
-            device_type=0xB3,
+            device_type=DeviceType.B3,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -47,7 +47,7 @@ class MessageQuery(MessageB3Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x31,
+            body_type=ListTypes.X31,
         )
 
     @property
@@ -218,16 +218,16 @@ class MessageB3Response(MessageResponse):
         super().__init__(bytearray(message))
         if (
             self.message_type == MessageType.query
-            and self.body_type == BodyType.X31
+            and self.body_type == ListTypes.X31
             or self.message_type == MessageType.notify1
-            and self.body_type == BodyType.X41
+            and self.body_type == ListTypes.X41
         ):
             self.set_body(B3MessageBody31(super().body))
         elif (
             self.message_type == MessageType.set
-            and self.body_type == BodyType.X21
+            and self.body_type == ListTypes.X21
             or self.message_type == MessageType.set
-            and self.body_type == BodyType.X24
+            and self.body_type == ListTypes.X24
         ):
             self.set_body(B3MessageBody21(super().body))
         self.set_attr()

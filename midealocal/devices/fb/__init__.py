@@ -4,6 +4,7 @@ import logging
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageFBResponse, MessageQuery, MessageSet
@@ -45,7 +46,7 @@ class MideaFBDevice(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,  # noqa: ARG002
@@ -54,12 +55,12 @@ class MideaFBDevice(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xFB,
+            device_type=DeviceType.FB,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -79,7 +80,7 @@ class MideaFBDevice(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea FB device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea FB device process message."""
@@ -102,13 +103,13 @@ class MideaFBDevice(MideaDevice):
     def set_attribute(self, attr: str, value: str | int | bool) -> None:
         """Midea FB device set attribute."""
         if attr == DeviceAttributes.mode:
-            message = MessageSet(self._protocol_version, self.subtype)
+            message = MessageSet(self._message_protocol_version, self.subtype)
             if value in MideaFBDevice._modes.values():
                 message.mode = list(MideaFBDevice._modes.keys())[
                     list(MideaFBDevice._modes.values()).index(str(value))
                 ]
         else:
-            message = MessageSet(self._protocol_version, self.subtype)
+            message = MessageSet(self._message_protocol_version, self.subtype)
             setattr(message, str(attr), value)
         self.build_send(message)
 
@@ -119,7 +120,7 @@ class MideaFBDevice(MideaDevice):
         zone: int | None = None,  # noqa: ARG002
     ) -> None:
         """Midea FB device set target temperature."""
-        message = MessageSet(self._protocol_version, self.subtype)
+        message = MessageSet(self._message_protocol_version, self.subtype)
         setattr(message, DeviceAttributes.target_temperature, target_temperature)
         self.build_send(message)
 

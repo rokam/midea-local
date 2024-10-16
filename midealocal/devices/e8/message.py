@@ -2,7 +2,14 @@
 
 from enum import IntEnum
 
-from midealocal.message import MessageBody, MessageRequest, MessageResponse, MessageType
+from midealocal.const import DeviceType
+from midealocal.message import (
+    ListTypes,
+    MessageBody,
+    MessageRequest,
+    MessageResponse,
+    MessageType,
+)
 
 MIN_RESPONSE_BODY_LENGTH = 6
 
@@ -21,12 +28,12 @@ class MessageE8Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize E8 message base."""
         super().__init__(
-            device_type=0xE8,
+            device_type=DeviceType.E8,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -45,7 +52,7 @@ class MessageQuery(MessageE8Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0xAA,
+            body_type=ListTypes.AA,
         )
 
     @property

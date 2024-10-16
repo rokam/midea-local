@@ -5,6 +5,7 @@ import logging
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageFAResponse, MessageQuery, MessageSet
@@ -82,7 +83,7 @@ class MideaFADevice(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,
@@ -91,12 +92,12 @@ class MideaFADevice(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xFA,
+            device_type=DeviceType.FA,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -141,7 +142,7 @@ class MideaFADevice(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea FA device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea FA device process message."""
@@ -274,7 +275,7 @@ class MideaFADevice(MideaDevice):
         message: MessageSet | None = None
         if self._attributes[attr] != value:
             if attr == DeviceAttributes.oscillate:
-                message = MessageSet(self._protocol_version, self.subtype)
+                message = MessageSet(self._message_protocol_version, self.subtype)
                 message.oscillate = bool(value)
                 if value:
                     message.oscillation_angle = 3  # 90
@@ -282,17 +283,17 @@ class MideaFADevice(MideaDevice):
             elif attr == DeviceAttributes.oscillation_mode and (
                 value in MideaFADevice._oscillation_modes or not value
             ):
-                message = MessageSet(self._protocol_version, self.subtype)
+                message = MessageSet(self._message_protocol_version, self.subtype)
                 self._set_oscillation_mode(message, str(value))
             elif attr == DeviceAttributes.oscillation_angle and (
                 value in MideaFADevice._oscillation_angles or not value
             ):
-                message = MessageSet(self._protocol_version, self.subtype)
+                message = MessageSet(self._message_protocol_version, self.subtype)
                 self._set_oscillation_angle(message, str(value))
             elif attr == DeviceAttributes.tilting_angle and (
                 value in MideaFADevice._tilting_angles or not value
             ):
-                message = MessageSet(self._protocol_version, self.subtype)
+                message = MessageSet(self._message_protocol_version, self.subtype)
                 self._set_tilting_angle(message, str(value))
         return message
 
@@ -311,22 +312,22 @@ class MideaFADevice(MideaDevice):
             and int(value) > 0
             and not self._attributes[DeviceAttributes.power]
         ):
-            message = MessageSet(self._protocol_version, self.subtype)
+            message = MessageSet(self._message_protocol_version, self.subtype)
             message.fan_speed = int(value)
             message.power = True
         elif attr == DeviceAttributes.mode:
             if value in MideaFADevice._modes:
-                message = MessageSet(self._protocol_version, self.subtype)
+                message = MessageSet(self._message_protocol_version, self.subtype)
                 message.mode = MideaFADevice._modes.index(str(value))
         elif not (attr == DeviceAttributes.fan_speed and value == 0):
-            message = MessageSet(self._protocol_version, self.subtype)
+            message = MessageSet(self._message_protocol_version, self.subtype)
             setattr(message, str(attr), value)
         if message is not None:
             self.build_send(message)
 
     def turn_on(self, fan_speed: int | None = None, mode: str | None = None) -> None:
         """Turn on the device."""
-        message = MessageSet(self._protocol_version, self.subtype)
+        message = MessageSet(self._message_protocol_version, self.subtype)
         message.power = True
         if fan_speed is not None:
             message.fan_speed = fan_speed

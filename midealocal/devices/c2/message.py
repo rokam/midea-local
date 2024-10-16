@@ -3,7 +3,14 @@
 from enum import IntEnum
 from typing import cast
 
-from midealocal.message import MessageBody, MessageRequest, MessageResponse, MessageType
+from midealocal.const import DeviceType, ProtocolVersion
+from midealocal.message import (
+    ListTypes,
+    MessageBody,
+    MessageRequest,
+    MessageResponse,
+    MessageType,
+)
 
 
 class C2MessageEnum(IntEnum):
@@ -48,12 +55,12 @@ class MessageC2Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize C2 message base."""
         super().__init__(
-            device_type=0xC2,
+            device_type=DeviceType.C2,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -72,7 +79,7 @@ class MessageQuery(MessageC2Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
     @property
@@ -88,28 +95,28 @@ class MessagePower(MessageC2Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x00,
+            body_type=ListTypes.X00,
         )
         self.power = False
 
     @property
     def _body(self) -> bytearray:
         if self.power:
-            self.body_type = 0x01
+            self.body_type = ListTypes.X01
         else:
-            self.body_type = 0x02
+            self.body_type = ListTypes.X02
         return bytearray([0x01])
 
 
 class MessagePowerOff(MessageC2Base):
     """C2 message power off."""
 
-    def __init__(self, protocol_version: int) -> None:
+    def __init__(self, protocol_version: ProtocolVersion) -> None:
         """Initialize C2 message power off."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
 
     @property
@@ -125,7 +132,7 @@ class MessageSet(MessageC2Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x00,
+            body_type=ListTypes.X00,
         )
 
         self.child_lock: bool | None = None
@@ -137,7 +144,7 @@ class MessageSet(MessageC2Base):
 
     @property
     def _body(self) -> bytearray:
-        self.body_type = 0x14
+        self.body_type = ListTypes.X14
         key = C2MessageEnum.none
         value: int | bool = 0x00
         if self.child_lock is not None:

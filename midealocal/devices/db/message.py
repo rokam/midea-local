@@ -1,7 +1,8 @@
 """Midea local DB message."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -15,12 +16,12 @@ class MessageDBBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize DB message base."""
         super().__init__(
-            device_type=0xDB,
+            device_type=DeviceType.DB,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -39,7 +40,7 @@ class MessageQuery(MessageDBBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x03,
+            body_type=ListTypes.X03,
         )
 
     @property
@@ -55,7 +56,7 @@ class MessagePower(MessageDBBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
         self.power = False
 
@@ -97,7 +98,7 @@ class MessageStart(MessageDBBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
         self.start = False
         self.washing_data = bytearray([])
@@ -136,7 +137,7 @@ class MessageDBResponse(MessageResponse):
         """Initialize DB message response."""
         super().__init__(bytearray(message))
         if self.message_type in [MessageType.query, MessageType.set] or (
-            self.message_type == MessageType.notify1 and self.body_type == BodyType.X04
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.X04
         ):
             self.set_body(DBGeneralMessageBody(super().body))
         self.set_attr()

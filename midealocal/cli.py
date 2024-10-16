@@ -14,11 +14,21 @@ import aiohttp
 import platformdirs
 from colorlog import ColoredFormatter
 
-from midealocal.cloud import SUPPORTED_CLOUDS, MideaCloud, get_midea_cloud
-from midealocal.device import MideaDevice, ProtocolVersion
+from midealocal.cloud import (
+    SUPPORTED_CLOUDS,
+    MideaCloud,
+    get_midea_cloud,
+    get_preset_account_cloud,
+)
+from midealocal.const import ProtocolVersion
+from midealocal.device import (
+    AuthException,
+    MideaDevice,
+    NoSupportedProtocol,
+)
 from midealocal.devices import device_selector
 from midealocal.discover import discover
-from midealocal.exceptions import ElementMissing
+from midealocal.exceptions import SocketException
 from midealocal.version import __version__
 
 _LOGGER = logging.getLogger("cli")
@@ -36,15 +46,22 @@ class MideaCLI:
 
     async def _get_cloud(self) -> MideaCloud:
         """Get cloud instance."""
+        if not hasattr(self, "session"):
+            self.session = aiohttp.ClientSession()
+
         if (
             not self.namespace.cloud_name
             or not self.namespace.username
             or not self.namespace.password
         ):
-            raise ElementMissing("Missing required parameters for cloud request.")
-
-        if not hasattr(self, "session"):
-            self.session = aiohttp.ClientSession()
+            default_cloud = get_preset_account_cloud()
+            _LOGGER.info("Using preset account.")
+            return get_midea_cloud(
+                cloud_name=default_cloud["cloud_name"],
+                session=self.session,
+                account=default_cloud["username"],
+                password=default_cloud["password"],
+            )
 
         return get_midea_cloud(
             cloud_name=self.namespace.cloud_name,
@@ -55,17 +72,24 @@ class MideaCLI:
 
     async def _get_keys(self, device_id: int) -> dict[int, dict[str, Any]]:
         cloud = await self._get_cloud()
-        cloud_keys = await cloud.get_cloud_keys(device_id)
         default_keys = await cloud.get_default_keys()
+        if not await cloud.login():
+            _LOGGER.warning(
+                "Failed to authenticate to the cloud. Using only default keys.",
+            )
+            return default_keys
+        cloud_keys = await cloud.get_cloud_keys(device_id)
+
         return {**cloud_keys, **default_keys}
 
-    async def discover(self) -> MideaDevice | None:
+    async def discover(self) -> list[MideaDevice]:
         """Discover device information."""
         devices = discover(ip_address=self.namespace.host)
 
+        device_list: list[MideaDevice] = []
         if len(devices) == 0:
             _LOGGER.error("No devices found.")
-            return None
+            return device_list
 
         # Dump only basic device info from the base class
         _LOGGER.info("Found %d devices.", len(devices))
@@ -85,18 +109,29 @@ class MideaCLI:
                     port=device["port"],
                     token=key["token"],
                     key=key["key"],
-                    protocol=device["protocol"],
+                    device_protocol=device["protocol"],
                     model=device["model"],
                     subtype=0,
                     customize="",
                 )
-                _LOGGER.debug("Trying to connect with key: %s", key)
+                _LOGGER.debug("Opening socket for device.")
                 if dev.connect():
-                    _LOGGER.info("Found device:\n%s", dev.attributes)
-                    return dev
-
-                _LOGGER.debug("Unable to connect with key: %s", key)
-        return None
+                    try:
+                        if device["protocol"] == ProtocolVersion.V3:
+                            _LOGGER.debug("Trying to connect with key: %s", key)
+                            dev.authenticate()
+                        _LOGGER.debug("Trying to retrieve device attributes.")
+                        dev.refresh_status(True)
+                    except AuthException:
+                        _LOGGER.debug("Unable to connect with key: %s", key)
+                    except SocketException:
+                        _LOGGER.exception("Device socket closed.")
+                    except NoSupportedProtocol:
+                        _LOGGER.exception("Unable to retrieve device attributes.")
+                    else:
+                        _LOGGER.info("Found device:\n%s", dev.attributes)
+                        device_list.append(dev)
+        return device_list
 
     def message(self) -> None:
         """Load message into device."""
@@ -108,7 +143,7 @@ class MideaCLI:
             device_type=device_type,
             ip_address="192.168.192.168",
             port=6664,
-            protocol=ProtocolVersion.V2,
+            device_protocol=ProtocolVersion.V2,
             model="0000",
             token="",
             key="",
@@ -162,23 +197,23 @@ class MideaCLI:
 
     async def set_attribute(self) -> None:
         """Set attribute for device."""
-        device = await self.discover()
-        if device is None:
+        device_list = await self.discover()
+        if len(device_list) != 1:
             return
 
         _LOGGER.info(
             "Setting attribute %s for %s [%s]",
             self.namespace.attribute,
-            device.device_id,
-            device.device_type,
+            device_list[0].device_id,
+            device_list[0].device_type,
         )
-        device.set_attribute(
+        device_list[0].set_attribute(
             self.namespace.attribute,
             self._cast_attr_value(),
         )
         await asyncio.sleep(2)
-        device.refresh_status(True)
-        _LOGGER.info("New device status:\n%s", device.attributes)
+        device_list[0].refresh_status(True)
+        _LOGGER.info("New device status:\n%s", device_list[0].attributes)
 
     def _cast_attr_value(self) -> int | bool | str:
         if self.namespace.attr_type == "bool":

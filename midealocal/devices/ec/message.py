@@ -1,12 +1,12 @@
 """Midea local EC message."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    NONE_VALUE,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
     MessageType,
-    SubBodyType,
 )
 
 
@@ -16,12 +16,12 @@ class MessageECBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int = NONE_VALUE,
+        message_type: MessageType,
+        body_type: ListTypes = ListTypes.X00,
     ) -> None:
         """Initialize EC message base."""
         super().__init__(
-            device_type=0xEC,
+            device_type=DeviceType.EC,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -91,31 +91,28 @@ class MessageECResponse(MessageResponse):
         super().__init__(bytearray(message))
         if (
             self.message_type == MessageType.notify1
-            and super().body[3] == SubBodyType.X01
+            and super().body[3] == ListTypes.X01
         ):
             self.set_body(ECBodyNew(super().body))
         elif (
-            (
-                self.message_type == MessageType.set
-                and super().body[3] == SubBodyType.X02
-            )
+            (self.message_type == MessageType.set and super().body[3] == ListTypes.X02)
             or (
                 self.message_type == MessageType.query
-                and super().body[3] == SubBodyType.X03
+                and super().body[3] == ListTypes.X03
             )
             or (
                 self.message_type == MessageType.notify1
-                and super().body[3] == SubBodyType.X04
+                and super().body[3] == ListTypes.X04
             )
             or (
                 self.message_type == MessageType.notify1
-                and super().body[3] == SubBodyType.X3D
+                and super().body[3] == ListTypes.X3D
             )
         ):
             self.set_body(ECGeneralMessageBody(super().body))
         elif (
             self.message_type == MessageType.notify1
-            and super().body[3] == SubBodyType.X06
+            and super().body[3] == ListTypes.X06
         ):
             self.mode = super().body[4] + (super().body[5] << 8)
         self.set_attr()

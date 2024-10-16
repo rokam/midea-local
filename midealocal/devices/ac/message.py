@@ -2,17 +2,15 @@
 
 from enum import IntEnum
 
-from midealocal.const import MAX_BYTE_VALUE
+from midealocal.const import MAX_BYTE_VALUE, DeviceType
 from midealocal.crc8 import calculate
-from midealocal.device import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
     MessageType,
     NewProtocolMessageBody,
-    SubBodyType,
 )
 
 BB_AC_MODES = [0, 3, 1, 2, 4, 5]
@@ -108,8 +106,8 @@ class MessageACBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize AC message base."""
         super().__init__(
@@ -143,7 +141,7 @@ class MessageQuery(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=BodyType.X41,
+            body_type=ListTypes.X41,
         )
 
     @property
@@ -176,12 +174,16 @@ class MessageQuery(MessageACBase):
 class MessageCapabilitiesQuery(MessageACBase):
     """AC message capabilities query."""
 
-    def __init__(self, protocol_version: int, additional_capabilities: bool) -> None:
+    def __init__(
+        self,
+        protocol_version: int,
+        additional_capabilities: bool,
+    ) -> None:
         """Initialize AC message capabilities query."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=BodyType.B5,
+            body_type=ListTypes.B5,
         )
         self._additional_capabilities = additional_capabilities
 
@@ -200,7 +202,7 @@ class MessagePowerQuery(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=BodyType.X41,
+            body_type=ListTypes.X41,
         )
 
     @property
@@ -223,7 +225,7 @@ class MessageToggleDisplay(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=BodyType.X41,
+            body_type=ListTypes.X41,
         )
         self.prompt_tone = False
 
@@ -263,7 +265,7 @@ class MessageNewProtocolQuery(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=BodyType.B1,
+            body_type=ListTypes.B1,
         )
 
     @property
@@ -289,14 +291,14 @@ class MessageSubProtocol(MessageACBase):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
+        message_type: MessageType,
         subprotocol_query_type: int,
     ) -> None:
         """Initialize AC message sub protocol."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=message_type,
-            body_type=0xAA,
+            body_type=ListTypes.AA,
         )
         self._subprotocol_query_type = subprotocol_query_type
 
@@ -334,7 +336,11 @@ class MessageSubProtocol(MessageACBase):
 class MessageSubProtocolQuery(MessageSubProtocol):
     """AC message sub protocol query."""
 
-    def __init__(self, protocol_version: int, subprotocol_query_type: int) -> None:
+    def __init__(
+        self,
+        protocol_version: int,
+        subprotocol_query_type: int,
+    ) -> None:
         """Initialize AC message sub protocol query."""
         super().__init__(
             protocol_version=protocol_version,
@@ -435,7 +441,7 @@ class MessageGeneralSet(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x40,
+            body_type=ListTypes.X40,
         )
         self.power = False
         self.prompt_tone = True
@@ -527,7 +533,7 @@ class MessageNewProtocolSet(MessageACBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0xB0,
+            body_type=ListTypes.B0,
         )
         self.indirect_wind: bytes | None = None
         self.prompt_tone: bytes | None = None
@@ -845,7 +851,7 @@ class XBBMessageBody(MessageBody):
         subprotocol_body = body[6:]
         data_type = subprotocol_head[-1]
         subprotocol_body_len = len(subprotocol_body)
-        if data_type in (SubBodyType.X11, SubBodyType.X20):
+        if data_type in (ListTypes.X11, ListTypes.X20):
             self.power = (subprotocol_body[0] & 0x1) > 0
             self.dry = (subprotocol_body[0] & 0x10) > 0
             self.boost_mode = (subprotocol_body[0] & 0x20) > 0
@@ -867,7 +873,7 @@ class XBBMessageBody(MessageBody):
                 if subprotocol_body_len > ECO_MODE_MIN_SUBPROTOCOL_LENGTH
                 else False
             )
-        elif data_type == SubBodyType.X10:
+        elif data_type == ListTypes.X10:
             if subprotocol_body[8] & 0x80 == SUB_PROTOCOL_BODY_TEMP_CHECK:
                 self.indoor_temperature = (
                     0 - (~(subprotocol_body[7] + subprotocol_body[8] * 256) + 1)
@@ -879,9 +885,9 @@ class XBBMessageBody(MessageBody):
                 ) / 100
             self.indoor_humidity = subprotocol_body[30]
             self.sn8_flag = subprotocol_body[80] == XBB_SN8_BYTE_FLAG
-        elif data_type == SubBodyType.X12:
+        elif data_type == ListTypes.X12:
             pass
-        elif data_type == SubBodyType.X30:
+        elif data_type == ListTypes.X30:
             if subprotocol_body[6] & 0x80 == SUB_PROTOCOL_BODY_TEMP_CHECK:
                 self.outdoor_temperature = (
                     0 - (~(subprotocol_body[5] + subprotocol_body[6] * 256) + 1)
@@ -891,7 +897,7 @@ class XBBMessageBody(MessageBody):
                 self.outdoor_temperature = (
                     subprotocol_body[5] + subprotocol_body[6] * 256
                 ) / 100
-        elif data_type in (SubBodyType.X13, SubBodyType.X21):
+        elif data_type in (ListTypes.X13, ListTypes.X21):
             pass
 
 
@@ -901,27 +907,29 @@ class MessageACResponse(MessageResponse):
     def __init__(self, message: bytearray, power_analysis_method: int = 3) -> None:
         """Initialize AC message response."""
         super().__init__(message)
-        if self.message_type == MessageType.notify2 and self.body_type == BodyType.A0:
+        if self.message_type == MessageType.notify2 and self.body_type == ListTypes.A0:
             self.set_body(XA0MessageBody(super().body))
-        elif self.message_type == MessageType.notify1 and self.body_type == BodyType.A1:
+        elif (
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.A1
+        ):
             self.set_body(XA1MessageBody(super().body))
         elif self.message_type in [
             MessageType.query,
             MessageType.set,
             MessageType.notify2,
-        ] and self.body_type in [BodyType.B0, BodyType.B1, BodyType.B5]:
+        ] and self.body_type in [ListTypes.B0, ListTypes.B1, ListTypes.B5]:
             self.set_body(XBXMessageBody(super().body, self.body_type))
         elif (
             self.message_type in [MessageType.query, MessageType.set]
-            and self.body_type == BodyType.C0
+            and self.body_type == ListTypes.C0
         ):
             self.set_body(XC0MessageBody(super().body))
-        elif self.message_type == MessageType.query and self.body_type == BodyType.C1:
+        elif self.message_type == MessageType.query and self.body_type == ListTypes.C1:
             self.set_body(XC1MessageBody(super().body, power_analysis_method))
         elif (
             self.message_type
             in [MessageType.set, MessageType.query, MessageType.notify2]
-            and self.body_type == BodyType.BB
+            and self.body_type == ListTypes.BB
             and len(super().body) >= BB_MIN_BODY_LENGTH
         ):
             self.used_subprotocol = True

@@ -14,7 +14,7 @@ from midealocal.cloud import (
     MeijuCloud,
     MideaAirCloud,
     MideaCloud,
-    MSmartHomeCloud,
+    SmartHomeCloud,
     get_default_cloud,
     get_midea_cloud,
     get_preset_account_cloud,
@@ -42,8 +42,8 @@ class CloudTest(IsolatedAsyncioTestCase):
         session = AsyncMock()
         assert isinstance(get_midea_cloud("美的美居", session, "", ""), MeijuCloud)
         assert isinstance(
-            get_midea_cloud("MSmartHome", session, "", ""),
-            MSmartHomeCloud,
+            get_midea_cloud("SmartHome", session, "", ""),
+            SmartHomeCloud,
         )
         assert isinstance(get_midea_cloud("Midea Air", session, "", ""), MideaAirCloud)
         assert isinstance(
@@ -60,7 +60,7 @@ class CloudTest(IsolatedAsyncioTestCase):
     async def test_get_default_cloud(self) -> None:
         """Test get default cloud name."""
         default_cloud = get_default_cloud()
-        assert default_cloud == "MSmartHome"
+        assert default_cloud == "SmartHome"
 
     async def test_get_cloud_servers(self) -> None:
         """Test get cloud servers."""
@@ -72,7 +72,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         credentials = get_preset_account_cloud()
         assert credentials["username"] == "c414e631394b8639@outlook.com"
         assert credentials["password"] == "a0d6e30c94b15"
-        assert credentials["cloud_name"] == "MSmartHome"
+        assert credentials["cloud_name"] == "SmartHome"
 
     async def test_midea_cloud_unimplemented(self) -> None:
         """Test unimplemented MideaCloud methods."""
@@ -304,6 +304,27 @@ class CloudTest(IsolatedAsyncioTestCase):
         assert device.get("manufacturer_code") == "1234"
         assert device.get("model") == "00000000"
         assert not device.get("online")
+        assert device.get("des") is None
+        assert device.get("active_status") == 1
+        assert device.get("active_time") == "2024-06-12 10:45:45"
+        assert device.get("master_id") is None
+        assert device.get("wifi_version") == "059009012205"
+        assert device.get("enterprise") == "0000"
+        assert device.get("is_other_equipment") is None
+        assert device.get("attrs") is None
+        assert device.get("room_name") is None
+        assert device.get("bt_mac") == "54B8740FA801"
+        assert device.get("bt_token") is None
+        assert device.get("hotspot_name") is None
+        assert device.get("is_bluetooth") == 0
+        assert device.get("bind_type") is None
+        assert device.get("ability") is None
+        assert device.get("name_changed") is None
+        assert not device.get("support_wot")
+        assert device.get("template_of_tsl") is None
+        assert device.get("shadow_level") is None
+        assert device.get("smart_product_id") == 10004256
+        assert device.get("brand") is None
 
         device = await cloud.get_device_info(99)
         assert device is None
@@ -359,7 +380,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         )
         session.request = AsyncMock(return_value=response)
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",
@@ -376,7 +397,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         )
         session.request = AsyncMock(return_value=response)
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",
@@ -388,7 +409,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         """Test MSmartCloud list_home."""
         session = Mock()
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",
@@ -413,7 +434,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         )
         session.request = AsyncMock(return_value=response)
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",
@@ -464,7 +485,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         )
         session.request = AsyncMock(return_value=response)
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",
@@ -504,7 +525,7 @@ class CloudTest(IsolatedAsyncioTestCase):
         res.text = AsyncMock(return_value="4ABE0FE395F3AD3B6BC4D223F1ADFA7C")
         session.get = AsyncMock(return_value=res)
         cloud = get_midea_cloud(
-            "MSmartHome",
+            "SmartHome",
             session=session,
             account="account",
             password="password",

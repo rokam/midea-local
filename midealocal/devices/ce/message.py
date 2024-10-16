@@ -1,8 +1,8 @@
 """Midea local CE message."""
 
-from midealocal.const import MAX_BYTE_VALUE
+from midealocal.const import MAX_BYTE_VALUE, DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -16,12 +16,12 @@ class MessageCEBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize CE message base."""
         super().__init__(
-            device_type=0xCE,
+            device_type=DeviceType.CE,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -40,7 +40,7 @@ class MessageQuery(MessageCEBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
     @property
@@ -56,7 +56,7 @@ class MessageSet(MessageCEBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
         self.power = False
@@ -154,13 +154,13 @@ class MessageCEResponse(MessageResponse):
         super().__init__(bytearray(message))
         if (
             self.message_type in [MessageType.query, MessageType.set]
-            and self.body_type == BodyType.X01
+            and self.body_type == ListTypes.X01
         ) or (
-            self.message_type == MessageType.notify1 and self.body_type == BodyType.X02
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.X02
         ):
             self.set_body(CEGeneralMessageBody(super().body))
         elif (
-            self.message_type == MessageType.notify1 and self.body_type == BodyType.X01
+            self.message_type == MessageType.notify1 and self.body_type == ListTypes.X01
         ):
             self.set_body(CENotifyMessageBody(super().body))
         self.set_attr()

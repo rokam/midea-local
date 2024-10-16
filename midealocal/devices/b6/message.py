@@ -1,20 +1,20 @@
 """Midea local B6 message."""
 
-from midealocal.const import MAX_BYTE_VALUE
-from midealocal.device import ProtocolVersion
+from midealocal.const import MAX_BYTE_VALUE, DeviceType, ProtocolVersion
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
     MessageType,
-    SubBodyType,
 )
 
 FAN_LEVEL_RANGE_1 = 130
 FAN_LEVEL_RANGE_2 = 140
 FAN_LEVEL_RANGE_3 = 170
 MIN_FAN_LEVEL_RANGE = 100
+
+MESSAGE_PROTOCOL_VERSION = 2
 
 
 class MessageB6Base(MessageRequest):
@@ -23,12 +23,12 @@ class MessageB6Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize B6 message base."""
         super().__init__(
-            device_type=0xB6,
+            device_type=DeviceType.B6,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -47,7 +47,9 @@ class MessageQuery(MessageB6Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x11 if protocol_version == ProtocolVersion.V2 else 0x31,
+            body_type=ListTypes.X11
+            if protocol_version == MESSAGE_PROTOCOL_VERSION
+            else ListTypes.X31,
         )
 
     @property
@@ -58,12 +60,12 @@ class MessageQuery(MessageB6Base):
 class MessageQueryTips(MessageB6Base):
     """B6 message query tips."""
 
-    def __init__(self, protocol_version: int) -> None:
+    def __init__(self, protocol_version: ProtocolVersion) -> None:
         """Initialize B6 message query tips."""
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x02,
+            body_type=ListTypes.X02,
         )
 
     @property
@@ -79,7 +81,9 @@ class MessageSet(MessageB6Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x22 if protocol_version in [0x00, 0x01] else 0x11,
+            body_type=ListTypes.X22
+            if protocol_version in [0x00, 0x01]
+            else ListTypes.X11,
         )
         self.light: int | None = None
         self.power: bool | None = None
@@ -217,40 +221,40 @@ class MessageB6Response(MessageResponse):
         super().__init__(bytearray(message))
         if (
             self.message_type == MessageType.set
-            and self.body_type == BodyType.X22
-            and super().body[1] == SubBodyType.X01
+            and self.body_type == ListTypes.X22
+            and super().body[1] == ListTypes.X01
         ):
             self.set_body(B6SpecialBody(super().body))
         elif (
             self.message_type == MessageType.set
-            and self.body_type == BodyType.X11
-            and super().body[1] == SubBodyType.X01
+            and self.body_type == ListTypes.X11
+            and super().body[1] == ListTypes.X01
         ):
             #############################
             pass
         elif self.message_type == MessageType.query:
-            if self.body_type in [BodyType.X11, BodyType.X31]:
+            if self.body_type in [ListTypes.X11, ListTypes.X31]:
                 if self.protocol_version in [0, 1]:
                     self.set_body(B6GeneralBody(super().body))
                 else:
                     self.set_body(B6NewProtocolBody(super().body))
-            elif self.body_type == BodyType.X32 and super().body[1] == 0x01:
+            elif self.body_type == ListTypes.X32 and super().body[1] == 0x01:
                 self.set_body(B6ExceptionBody(super().body))
         elif self.message_type == MessageType.notify1:
-            if self.body_type in [BodyType.X11, BodyType.X41]:
+            if self.body_type in [ListTypes.X11, ListTypes.X41]:
                 if self.protocol_version in [0, 1]:
                     self.set_body(B6GeneralBody(super().body))
                 else:
                     self.set_body(B6NewProtocolBody(super().body))
-            elif self.body_type == BodyType.X0A:
-                if super().body[1] == SubBodyType.A1:
+            elif self.body_type == ListTypes.X0A:
+                if super().body[1] == ListTypes.A1:
                     self.set_body(B6ExceptionBody(super().body))
-                elif super().body[1] == SubBodyType.A2:
+                elif super().body[1] == ListTypes.A2:
                     self.oilcup_full = (super().body[2] & 0x01) > 0
                     self.cleaning_reminder = (super().body[2] & 0x02) > 0
         elif (
             self.message_type == MessageType.exception2
-            and self.body_type == SubBodyType.A1
+            and self.body_type == ListTypes.A1
         ):
             pass
 

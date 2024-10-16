@@ -4,6 +4,7 @@ import logging
 from enum import StrEnum
 from typing import Any
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageE6Response, MessageQuery, MessageSet
@@ -37,7 +38,7 @@ class MideaE6Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,  # noqa: ARG002
@@ -46,12 +47,12 @@ class MideaE6Device(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xE6,
+            device_type=DeviceType.E6,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -70,7 +71,7 @@ class MideaE6Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea E6 device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea E6 device process message."""
@@ -91,7 +92,7 @@ class MideaE6Device(MideaDevice):
             DeviceAttributes.heating_temperature,
             DeviceAttributes.bathing_temperature,
         ]:
-            message = MessageSet(self._protocol_version)
+            message = MessageSet(self._message_protocol_version)
             setattr(message, str(attr), value)
             self.build_send(message)
 

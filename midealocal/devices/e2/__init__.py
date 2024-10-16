@@ -5,6 +5,7 @@ import logging
 from enum import IntEnum, StrEnum
 from typing import Any
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import (
@@ -62,7 +63,7 @@ class MideaE2Device(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,
@@ -71,12 +72,12 @@ class MideaE2Device(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xE2,
+            device_type=DeviceType.E2,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -112,7 +113,7 @@ class MideaE2Device(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea E2 device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea E2 device process message."""
@@ -127,7 +128,7 @@ class MideaE2Device(MideaDevice):
 
     def make_message_set(self) -> MessageSet:
         """Midea E2 device make message set."""
-        message = MessageSet(self._protocol_version)
+        message = MessageSet(self._message_protocol_version)
         message.protection = self._attributes[DeviceAttributes.protection]
         message.whole_tank_heating = self._attributes[
             DeviceAttributes.whole_tank_heating
@@ -148,13 +149,13 @@ class MideaE2Device(MideaDevice):
         ]:
             old_protocol = self._normalize_old_protocol(self._old_protocol)
             if attr == DeviceAttributes.power:
-                message = MessagePower(self._protocol_version)
+                message = MessagePower(self._message_protocol_version)
                 message.power = bool(value)
             elif old_protocol == OldProtocol.true:
                 message = self.make_message_set()
                 setattr(message, str(attr), value)
             else:
-                message = MessageNewProtocolSet(self._protocol_version)
+                message = MessageNewProtocolSet(self._message_protocol_version)
                 setattr(message, str(attr), value)
             self.build_send(message)
 

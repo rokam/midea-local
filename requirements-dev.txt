@@ -6,4 +6,5 @@ pytest-asyncio
 pytest-cov
 ruff
 setuptools
+types-deprecated
 types-aiofiles

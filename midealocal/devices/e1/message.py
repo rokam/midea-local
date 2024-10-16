@@ -1,7 +1,8 @@
 """Midea local E1 message."""
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -19,12 +20,12 @@ class MessageE1Base(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize E1 message base."""
         super().__init__(
-            device_type=0xE1,
+            device_type=DeviceType.E1,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -43,7 +44,7 @@ class MessagePower(MessageE1Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x08,
+            body_type=ListTypes.X08,
         )
         self.power = False
 
@@ -61,7 +62,7 @@ class MessageLock(MessageE1Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x83,
+            body_type=ListTypes.X83,
         )
         self.lock = False
 
@@ -79,7 +80,7 @@ class MessageStorage(MessageE1Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x81,
+            body_type=ListTypes.X81,
         )
         self.storage = False
 
@@ -101,7 +102,7 @@ class MessageQuery(MessageE1Base):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x00,
+            body_type=ListTypes.X00,
         )
 
     @property
@@ -155,7 +156,8 @@ class MessageE1Response(MessageResponse):
         """Initialize E1 message response."""
         super().__init__(bytearray(message))
         if (
-            self.message_type == MessageType.set and 0 <= self.body_type <= BodyType.X07
+            self.message_type == MessageType.set
+            and 0 <= self.body_type <= ListTypes.X07
         ) or (
             self.message_type in [MessageType.query, MessageType.notify1]
             and self.body_type == 0

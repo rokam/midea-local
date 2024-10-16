@@ -2,8 +2,9 @@
 
 from enum import IntEnum
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -24,12 +25,12 @@ class MessageCCBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int,
+        message_type: MessageType,
+        body_type: ListTypes,
     ) -> None:
         """Initialize CC message base."""
         super().__init__(
-            device_type=0xCC,
+            device_type=DeviceType.CC,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -48,7 +49,7 @@ class MessageQuery(MessageCCBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.query,
-            body_type=0x01,
+            body_type=ListTypes.X01,
         )
 
     @property
@@ -64,7 +65,7 @@ class MessageSet(MessageCCBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0xC3,
+            body_type=ListTypes.C3,
         )
         self.power = False
         self.mode = 4
@@ -169,12 +170,12 @@ class MessageCCResponse(MessageResponse):
         """Initialize CC message response."""
         super().__init__(bytearray(message))
         if (
-            (self.message_type == MessageType.query and self.body_type == BodyType.X01)
+            (self.message_type == MessageType.query and self.body_type == ListTypes.X01)
             or (
                 self.message_type in [MessageType.notify1, MessageType.notify2]
-                and self.body_type == BodyType.X01
+                and self.body_type == ListTypes.X01
             )
-            or (self.message_type == MessageType.set and self.body_type == BodyType.C3)
+            or (self.message_type == MessageType.set and self.body_type == ListTypes.C3)
         ):
             self.set_body(CCGeneralMessageBody(super().body))
         self.set_attr()

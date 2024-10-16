@@ -4,6 +4,7 @@ import logging
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageBFResponse, MessageQuery
@@ -43,7 +44,7 @@ class MideaBFDevice(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,  # noqa: ARG002
@@ -52,12 +53,12 @@ class MideaBFDevice(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xBF,
+            device_type=DeviceType.BF,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -73,7 +74,7 @@ class MideaBFDevice(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea BF device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea BF device process message."""

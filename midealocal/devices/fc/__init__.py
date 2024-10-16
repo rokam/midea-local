@@ -5,6 +5,7 @@ import logging
 from enum import StrEnum
 from typing import Any, ClassVar
 
+from midealocal.const import DeviceType, ProtocolVersion
 from midealocal.device import MideaDevice
 
 from .message import MessageFCResponse, MessageQuery, MessageSet
@@ -62,7 +63,7 @@ class MideaFCDevice(MideaDevice):
         port: int,
         token: str,
         key: str,
-        protocol: int,
+        device_protocol: ProtocolVersion,
         model: str,
         subtype: int,
         customize: str,
@@ -71,12 +72,12 @@ class MideaFCDevice(MideaDevice):
         super().__init__(
             name=name,
             device_id=device_id,
-            device_type=0xFC,
+            device_type=DeviceType.FC,
             ip_address=ip_address,
             port=port,
             token=token,
             key=key,
-            protocol=protocol,
+            device_protocol=device_protocol,
             model=model,
             subtype=subtype,
             attributes={
@@ -123,7 +124,7 @@ class MideaFCDevice(MideaDevice):
 
     def build_query(self) -> list[MessageQuery]:
         """Midea FC device build query."""
-        return [MessageQuery(self._protocol_version)]
+        return [MessageQuery(self._message_protocol_version)]
 
     def process_message(self, msg: bytes) -> dict[str, Any]:
         """Midea FC device process message."""
@@ -162,7 +163,7 @@ class MideaFCDevice(MideaDevice):
 
     def make_message_set(self) -> MessageSet:
         """Midea FC device make message set."""
-        message = MessageSet(self._protocol_version)
+        message = MessageSet(self._message_protocol_version)
         message.power = self._attributes[DeviceAttributes.power]
         message.child_lock = self._attributes[DeviceAttributes.child_lock]
         message.prompt_tone = self._attributes[DeviceAttributes.prompt_tone]

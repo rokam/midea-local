@@ -16,7 +16,9 @@ jobs:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
   label-pr:
     runs-on: ubuntu-latest
+    if: "!contains( github.event.pull_request.labels.*.name, 'autorelease: pending') && !contains( github.event.pull_request.labels.*.name, 'autorelease: tagged')"
     permissions:
+      contents: read
       pull-requests: write
     steps:
       - uses: grafana/pr-labeler-action@v0.1.0

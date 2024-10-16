@@ -4,10 +4,10 @@ import pytest
 
 from midealocal.message import (
     BodyParser,
-    BodyType,
     BoolParser,
     IntEnumParser,
     IntParser,
+    ListTypes,
     MessageBody,
 )
 
@@ -124,15 +124,20 @@ class TestIntEnumParser:
 
     def test_intenum_default(self) -> None:
         """Test default behaviour."""
-        parser = IntEnumParser[BodyType]("name", 0, BodyType)
-        assert parser._parse(0x01) == BodyType.X01
-        assert parser._parse(0x00) == BodyType.X00
-        assert parser._parse(0x10) == BodyType.X00
+        parser = IntEnumParser[ListTypes]("name", 0, ListTypes)
+        assert parser._parse(0x01) == ListTypes.X01
+        assert parser._parse(0x00) == ListTypes.X00
+        assert parser._parse(0x10) == ListTypes.X10
 
-        parser = IntEnumParser[BodyType]("name", 0, BodyType, default_value=BodyType.A0)
-        assert parser._parse(0x01) == BodyType.X01
-        assert parser._parse(0x00) == BodyType.X00
-        assert parser._parse(0x10) == BodyType.A0
+        parser = IntEnumParser[ListTypes](
+            "name",
+            0,
+            ListTypes,
+            default_value=ListTypes.A0,
+        )
+        assert parser._parse(0x01) == ListTypes.X01
+        assert parser._parse(0x00) == ListTypes.X00
+        assert parser._parse(0xA0) == ListTypes.A0
 
 
 class TestIntParser:
@@ -169,7 +174,7 @@ class TestMessageBody:
         body = MessageBody(data)
         body.parser_list.extend(
             [
-                IntEnumParser("bt", 0, BodyType),
+                IntEnumParser("bt", 0, ListTypes),
                 BoolParser("power", 1),
                 BoolParser("feature_1", 2, 0),
                 BoolParser("feature_2", 2, 1),
@@ -178,7 +183,7 @@ class TestMessageBody:
         )
         body.parse_all()
         assert hasattr(body, "bt") is True
-        assert getattr(body, "bt", None) == BodyType.X00
+        assert getattr(body, "bt", None) == ListTypes.X00
         assert hasattr(body, "power") is True
         assert getattr(body, "power", False) is True
         assert hasattr(body, "feature_1") is True

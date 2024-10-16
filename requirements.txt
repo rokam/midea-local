@@ -3,6 +3,7 @@ aiohttp
 colorlog
 commonregex
 defusedxml
+deprecated
 ifaddr
 pycryptodome
 platformdirs

@@ -2,9 +2,9 @@
 
 from enum import IntEnum
 
+from midealocal.const import DeviceType
 from midealocal.message import (
-    NONE_VALUE,
-    BodyType,
+    ListTypes,
     MessageBody,
     MessageRequest,
     MessageResponse,
@@ -45,12 +45,12 @@ class MessageEDBase(MessageRequest):
     def __init__(
         self,
         protocol_version: int,
-        message_type: int,
-        body_type: int = NONE_VALUE,
+        message_type: MessageType,
+        body_type: ListTypes = ListTypes.X00,
     ) -> None:
         """Initialize ED message base."""
         super().__init__(
-            device_type=0xED,
+            device_type=DeviceType.ED,
             protocol_version=protocol_version,
             message_type=message_type,
             body_type=body_type,
@@ -64,7 +64,7 @@ class MessageEDBase(MessageRequest):
 class MessageQuery(MessageEDBase):
     """ED message query."""
 
-    def __init__(self, protocol_version: int, body_type: int) -> None:
+    def __init__(self, protocol_version: int, body_type: ListTypes) -> None:
         """Initialize ED message query."""
         super().__init__(
             protocol_version=protocol_version,
@@ -85,7 +85,7 @@ class MessageNewSet(MessageEDBase):
         super().__init__(
             protocol_version=protocol_version,
             message_type=MessageType.set,
-            body_type=0x15,
+            body_type=ListTypes.X15,
         )
         self.power: bool | None = None
         self.lock: bool | None = None
@@ -244,18 +244,22 @@ class MessageEDResponse(MessageResponse):
     def __init__(self, message: bytes) -> None:
         """Initialize ED message response."""
         super().__init__(bytearray(message))
-        if self._message_type in [MessageType.query, MessageType.notify1]:
+        if self._message_type in [
+            MessageType.set,
+            MessageType.query,
+            MessageType.notify1,
+        ]:
             self.device_class = self._body_type
-            if self._body_type in [BodyType.X00, BodyType.FF]:
+            if self._body_type in [ListTypes.X00, ListTypes.X15, ListTypes.FF]:
                 self.set_body(EDMessageBodyFF(super().body))
-            if self.body_type == BodyType.X01:
+            if self.body_type == ListTypes.X01:
                 self.set_body(EDMessageBody01(super().body))
-            elif self.body_type in [BodyType.X03, BodyType.X04]:
+            elif self.body_type in [ListTypes.X03, ListTypes.X04]:
                 self.set_body(EDMessageBody03(super().body))
-            elif self.body_type == BodyType.X05:
+            elif self.body_type == ListTypes.X05:
                 self.set_body(EDMessageBody05(super().body))
-            elif self.body_type == BodyType.X06:
+            elif self.body_type == ListTypes.X06:
                 self.set_body(EDMessageBody06(super().body))
-            elif self.body_type == BodyType.X07:
+            elif self.body_type == ListTypes.X07:
                 self.set_body(EDMessageBody07(super().body))
         self.set_attr()
