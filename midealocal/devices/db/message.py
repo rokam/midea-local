@@ -120,6 +120,18 @@ class DBGeneralMessageBody(MessageBody):
         self.power = body[1] > 0
         self.start = body[2] in [2, 6]
         self.washing_data = body[3:16]
+        self.status = body[2]
+        self.mode = body[3]
+        self.program = body[4]
+        self.water_level = body[5]
+        self.temperature = body[7]
+        self.dehydration_speed = body[8]
+        self.wash_time = body[9]
+        self.dehydration_time = body[10]
+        self.detergent = body[11]
+        self.softener = body[12]
+        self.wash_time_value = body[27]
+        self.dehydration_time_value = body[28]
         self.progress = 0
         self.time_remaining: float | None = None
         for i in range(7):
