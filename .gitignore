@@ -46,6 +46,7 @@ htmlcov/
 .cache
 nosetests.xml
 coverage.xml
+cov.xml
 *.cover
 *.py,cover
 .hypothesis/
@@ -135,7 +136,3 @@ reports/
 # Optional config file for library script
 library_test.json
 midea-local.json
-
-# LUA protocol implementation
-*.lua
-cov.xml
